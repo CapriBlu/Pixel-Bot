@@ -9,6 +9,16 @@ ALLOWED_ACTIONS = {
     "write_text",
     "press_key",
     "wait",
+    "open_app",
+}
+
+ALLOWED_APPS = {
+    "notepad": "notepad.exe",
+    "blocco note": "notepad.exe",
+    "calculator": "calc.exe",
+    "calcolatrice": "calc.exe",
+    "paint": "mspaint.exe",
+    "esplora file": "explorer.exe",
 }
 
 
@@ -38,6 +48,12 @@ def validate_action(action: Action) -> None:
         if not isinstance(text, str) or not text:
             raise ValueError("Il testo deve essere una stringa non vuota.")
 
+    if action.name == "press_key":
+        key = action.parameters.get("key")
+
+        if not isinstance(key, str) or not key:
+            raise ValueError("Il tasto deve essere una stringa non vuota.")
+
     if action.name == "wait":
         seconds = action.parameters.get("seconds", 1)
 
@@ -46,3 +62,9 @@ def validate_action(action: Action) -> None:
 
         if seconds < 0 or seconds > 30:
             raise ValueError("L'attesa deve essere compresa tra 0 e 30 secondi.")
+
+    if action.name == "open_app":
+        app = action.parameters.get("app")
+
+        if app not in ALLOWED_APPS:
+            raise ValueError(f"Applicazione non autorizzata: {app}")

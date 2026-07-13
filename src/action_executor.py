@@ -1,9 +1,10 @@
-﻿import time
+﻿import subprocess
+import time
 
 from keyboard_controller import press_key, write_text
 from logger import get_logger
 from mouse_controller import click_mouse, move_mouse
-from safety import Action, validate_action
+from safety import Action, ALLOWED_APPS, validate_action
 from screen_capture import capture_screen
 
 
@@ -51,5 +52,12 @@ def execute_action(action: Action):
     if action.name == "wait":
         time.sleep(action.parameters.get("seconds", 1))
         return None
+
+    if action.name == "open_app":
+        app_name = action.parameters["app"]
+        executable = ALLOWED_APPS[app_name]
+
+        subprocess.Popen([executable])
+        return executable
 
     raise RuntimeError(f"Azione non gestita: {action.name}")

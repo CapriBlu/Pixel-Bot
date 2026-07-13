@@ -3,17 +3,28 @@
 from safety import Action
 
 
-def parse_command(command: str) -> list[Action]:
-    text = command.strip().lower()
+def parse_single_command(command: str) -> list[Action]:
+    original = command.strip()
+    text = original.lower()
 
     if not text:
-        raise ValueError("Il comando non può essere vuoto.")
+        return []
 
     if text in {"fai uno screenshot", "screenshot", "cattura schermo"}:
+        return [Action(name="screenshot", parameters={})]
+
+    open_match = re.fullmatch(
+        r"(?:apri|avvia)\s+(.+)",
+        text,
+    )
+
+    if open_match:
+        app = open_match.group(1).strip()
+
         return [
             Action(
-                name="screenshot",
-                parameters={},
+                name="open_app",
+                parameters={"app": app},
             )
         ]
 
@@ -23,12 +34,10 @@ def parse_command(command: str) -> list[Action]:
     )
 
     if wait_match:
-        seconds = float(wait_match.group(1))
-
         return [
             Action(
                 name="wait",
-                parameters={"seconds": seconds},
+                parameters={"seconds": float(wait_match.group(1))},
             )
         ]
 
@@ -38,15 +47,12 @@ def parse_command(command: str) -> list[Action]:
     )
 
     if move_match:
-        x = int(move_match.group(1))
-        y = int(move_match.group(2))
-
         return [
             Action(
                 name="move_mouse",
                 parameters={
-                    "x": x,
-                    "y": y,
+                    "x": int(move_match.group(1)),
+                    "y": int(move_match.group(2)),
                     "duration": 0.5,
                 },
             )
@@ -58,40 +64,62 @@ def parse_command(command: str) -> list[Action]:
     )
 
     if click_match:
-        x = int(click_match.group(1))
-        y = int(click_match.group(2))
-
         return [
             Action(
                 name="click",
                 parameters={
-                    "x": x,
-                    "y": y,
+                    "x": int(click_match.group(1)),
+                    "y": int(click_match.group(2)),
                 },
             )
         ]
 
     write_match = re.fullmatch(
         r"(?:scrivi|digita)\s+(.+)",
-        command.strip(),
+        original,
         flags=re.IGNORECASE,
     )
 
     if write_match:
-        content = write_match.group(1).strip()
-
         return [
             Action(
                 name="write_text",
                 parameters={
-                    "text": content,
+                    "text": write_match.group(1).strip(),
                     "interval": 0.03,
                 },
             )
         ]
 
-    raise ValueError(
-        "Comando non riconosciuto. "
-        "Prova: screenshot, aspetta 2 secondi, "
-        "muovi il mouse a 300 300, clicca su 300 300, scrivi Ciao."
+    key_match = re.fullmatch(
+        r"(?:premi)\s+(.+)",
+        text,
     )
+
+    if key_match:
+        return [
+            Action(
+                name="press_key",
+                parameters={"key": key_match.group(1).strip()},
+            )
+        ]
+
+    raise ValueError(f"Comando non riconosciuto: {original}")
+
+
+def parse_command(command: str) -> list[Action]:
+    parts = [
+        part.strip()
+        for part in command.split(";")
+        if part.strip()
+    ]
+
+    if not parts:
+        raise ValueError("Il comando non può essere vuoto.")
+
+    actions = []
+
+    for part in parts:
+        actions.extend(parse_single_command(part))
+
+    return actions
