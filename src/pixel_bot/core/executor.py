@@ -1,12 +1,12 @@
 ﻿import subprocess
 import time
 
-from keyboard_controller import press_key, write_text
-from logger import get_logger
-from mouse_controller import click_mouse, move_mouse
-from safety import Action, ALLOWED_APPS, validate_action
-from screen_capture import capture_screen
-from window_controller import focus_window
+from pixel_bot.automation.keyboard_controller import press_key, write_text
+from pixel_bot.automation.mouse_controller import click_mouse, move_mouse
+from pixel_bot.core.logger import get_logger
+from pixel_bot.core.safety import Action, ALLOWED_APPS, validate_action
+from pixel_bot.vision.screen_capture import capture_screen
+from pixel_bot.vision.window_controller import focus_window
 
 
 logger = get_logger(__name__)

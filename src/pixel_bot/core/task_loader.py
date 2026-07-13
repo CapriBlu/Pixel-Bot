@@ -1,7 +1,7 @@
 ﻿import json
 from pathlib import Path
 
-from safety import Action
+from pixel_bot.core.safety import Action
 
 
 def load_task(task_path: str) -> list[Action]:
@@ -14,7 +14,9 @@ def load_task(task_path: str) -> list[Action]:
         task_data = json.load(file)
 
     if not isinstance(task_data, list):
-        raise ValueError("Il file del task deve contenere una lista di azioni.")
+        raise ValueError(
+            "Il file del task deve contenere una lista di azioni."
+        )
 
     actions = []
 
@@ -26,10 +28,14 @@ def load_task(task_path: str) -> list[Action]:
         parameters = item.get("parameters", {})
 
         if not isinstance(name, str):
-            raise ValueError(f"Nome dell'azione {index} non valido.")
+            raise ValueError(
+                f"Nome dell'azione {index} non valido."
+            )
 
         if not isinstance(parameters, dict):
-            raise ValueError(f"Parametri dell'azione {index} non validi.")
+            raise ValueError(
+                f"Parametri dell'azione {index} non validi."
+            )
 
         actions.append(
             Action(

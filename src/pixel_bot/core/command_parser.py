@@ -1,6 +1,6 @@
 ﻿import re
 
-from safety import Action
+from pixel_bot.core.safety import Action
 
 
 def parse_single_command(command: str) -> list[Action]:
@@ -157,3 +157,4 @@ def parse_command(command: str) -> list[Action]:
         actions.extend(parse_single_command(part))
 
     return actions
+
