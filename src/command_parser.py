@@ -11,7 +11,30 @@ def parse_single_command(command: str) -> list[Action]:
         return []
 
     if text in {"fai uno screenshot", "screenshot", "cattura schermo"}:
-        return [Action(name="screenshot", parameters={})]
+        return [
+            Action(
+                name="screenshot",
+                parameters={},
+            )
+        ]
+
+    focus_match = re.fullmatch(
+        r"(?:attiva|seleziona|porta in primo piano)\s+"
+        r"(?:la\s+)?finestra\s+(.+)",
+        original,
+        flags=re.IGNORECASE,
+    )
+
+    if focus_match:
+        return [
+            Action(
+                name="focus_window",
+                parameters={
+                    "title": focus_match.group(1).strip(),
+                    "timeout": 5.0,
+                },
+            )
+        ]
 
     open_match = re.fullmatch(
         r"(?:apri|avvia)\s+(.+)",
@@ -19,17 +42,19 @@ def parse_single_command(command: str) -> list[Action]:
     )
 
     if open_match:
-        app = open_match.group(1).strip()
-
         return [
             Action(
                 name="open_app",
-                parameters={"app": app},
+                parameters={
+                    "app": open_match.group(1).strip(),
+                },
             )
         ]
 
     wait_match = re.fullmatch(
-        r"(?:aspetta|attendi)\s+(\d+(?:\.\d+)?)\s*(?:secondi|secondo)?",
+        r"(?:aspetta|attendi)\s+"
+        r"(\d+(?:\.\d+)?)\s*"
+        r"(?:secondi|secondo)?",
         text,
     )
 
@@ -37,12 +62,17 @@ def parse_single_command(command: str) -> list[Action]:
         return [
             Action(
                 name="wait",
-                parameters={"seconds": float(wait_match.group(1))},
+                parameters={
+                    "seconds": float(wait_match.group(1)),
+                },
             )
         ]
 
     move_match = re.fullmatch(
-        r"(?:sposta|muovi)\s+(?:il\s+)?mouse\s+(?:a|su)\s+(\d+)\s*[,\s]\s*(\d+)",
+        r"(?:sposta|muovi)\s+"
+        r"(?:il\s+)?mouse\s+"
+        r"(?:a|su)\s+"
+        r"(\d+)\s*[,\s]\s*(\d+)",
         text,
     )
 
@@ -59,7 +89,9 @@ def parse_single_command(command: str) -> list[Action]:
         ]
 
     click_match = re.fullmatch(
-        r"(?:clicca|fai clic)\s+(?:a|su)\s+(\d+)\s*[,\s]\s*(\d+)",
+        r"(?:clicca|fai clic)\s+"
+        r"(?:a|su)\s+"
+        r"(\d+)\s*[,\s]\s*(\d+)",
         text,
     )
 
@@ -100,7 +132,9 @@ def parse_single_command(command: str) -> list[Action]:
         return [
             Action(
                 name="press_key",
-                parameters={"key": key_match.group(1).strip()},
+                parameters={
+                    "key": key_match.group(1).strip(),
+                },
             )
         ]
 

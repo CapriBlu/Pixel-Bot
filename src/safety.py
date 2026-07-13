@@ -10,6 +10,7 @@ ALLOWED_ACTIONS = {
     "press_key",
     "wait",
     "open_app",
+    "focus_window",
 }
 
 ALLOWED_APPS = {
@@ -31,6 +32,9 @@ class Action:
 def validate_action(action: Action) -> None:
     if action.name not in ALLOWED_ACTIONS:
         raise ValueError(f"Azione non autorizzata: {action.name}")
+
+    if not isinstance(action.parameters, dict):
+        raise ValueError("I parametri dell'azione devono essere un dizionario.")
 
     if action.name in {"move_mouse", "click"}:
         x = action.parameters.get("x")
@@ -68,3 +72,16 @@ def validate_action(action: Action) -> None:
 
         if app not in ALLOWED_APPS:
             raise ValueError(f"Applicazione non autorizzata: {app}")
+
+    if action.name == "focus_window":
+        title = action.parameters.get("title")
+        timeout = action.parameters.get("timeout", 5.0)
+
+        if not isinstance(title, str) or not title.strip():
+            raise ValueError("Il titolo della finestra non è valido.")
+
+        if not isinstance(timeout, (int, float)):
+            raise ValueError("Il timeout deve essere numerico.")
+
+        if timeout <= 0 or timeout > 30:
+            raise ValueError("Il timeout deve essere compreso tra 0 e 30 secondi.")

@@ -6,6 +6,7 @@ from logger import get_logger
 from mouse_controller import click_mouse, move_mouse
 from safety import Action, ALLOWED_APPS, validate_action
 from screen_capture import capture_screen
+from window_controller import focus_window
 
 
 logger = get_logger(__name__)
@@ -59,5 +60,13 @@ def execute_action(action: Action):
 
         subprocess.Popen([executable])
         return executable
+
+    if action.name == "focus_window":
+        window = focus_window(
+            action.parameters["title"],
+            action.parameters.get("timeout", 5.0),
+        )
+
+        return window.title
 
     raise RuntimeError(f"Azione non gestita: {action.name}")
