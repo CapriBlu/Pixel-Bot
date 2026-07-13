@@ -18,5 +18,4 @@ ALLOWED_APPS = {
     "notepad": "notepad.exe",
     "blocco note": "notepad.exe",
     "calculator": "calc.exe",
-    "calcolatrice": "calc.exe",
-    "paint": "mspaint.exe
+    "calcol
