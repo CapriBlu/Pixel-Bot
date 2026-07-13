@@ -1,26 +1,27 @@
 ﻿import argparse
 
-from action_executor import execute_action
-from logger import get_logger
-from task_loader import load_task
+from pixel_bot.core.executor import execute_action
+from pixel_bot.core.logger import get_logger
+from pixel_bot.core.task_loader import load_task
 
 
 logger = get_logger(__name__)
 
 
-def describe_action(action) -> str:
-    return f"{action.name} {action.parameters}"
-
-
-def run_task(task_path: str, dry_run: bool = False, confirm: bool = True) -> None:
+def run_task(
+    task_path: str,
+    dry_run: bool = False,
+    confirm: bool = True,
+) -> None:
     actions = load_task(task_path)
 
     print(f"Task caricato: {len(actions)} azioni")
 
     for index, action in enumerate(actions, start=1):
-        description = describe_action(action)
-
-        print(f"[{index}/{len(actions)}] {description}")
+        print(
+            f"[{index}/{len(actions)}] "
+            f"{action.name} {action.parameters}"
+        )
 
         if dry_run:
             print("  Anteprima: azione non eseguita.")
@@ -61,19 +62,16 @@ def main() -> None:
         "task",
         nargs="?",
         default="tasks/demo_task.json",
-        help="Percorso del file JSON del task.",
     )
 
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Mostra le azioni senza eseguirle.",
     )
 
     parser.add_argument(
         "--no-confirm",
         action="store_true",
-        help="Esegue senza chiedere conferma.",
     )
 
     args = parser.parse_args()
