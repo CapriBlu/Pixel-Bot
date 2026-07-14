@@ -444,3 +444,37 @@ python -m pixel_bot.developer.cli `
   --session-max-requests 3 `
   --session-max-cost 0.10
 ```
+
+## Installazione locale del package
+
+Il progetto usa il layout `src/`. Per eseguire la CLI senza impostare manualmente
+`PYTHONPATH`, installare il repository in modalita editable dall'ambiente virtuale:
+
+```powershell
+python -m pip install -e ".[dev]"
+```
+
+Dopo l'installazione sono disponibili:
+
+```powershell
+pixelbot-developer --help
+python -m pixel_bot.developer.cli --help
+```
+
+### Configurazione AI
+
+Copiare `.env.example` in `.env`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Per un collaudo senza consumo API lasciare:
+
+```text
+PIXEL_BOT_DRY_RUN=1
+```
+
+Per il backend reale impostare `PIXEL_BOT_DRY_RUN=0`,
+`PIXEL_BOT_AI_ENDPOINT` e, se richiesto, `PIXEL_BOT_AI_TOKEN`.
+La CLI carica automaticamente il file `.env` dalla root del progetto.
