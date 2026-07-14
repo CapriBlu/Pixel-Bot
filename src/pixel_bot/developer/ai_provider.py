@@ -118,6 +118,12 @@ class DeveloperAIProvider:
                 "files": snapshot.files,
                 "relevant_file_contents": self._read_relevant_files(plan.relevant_files),
             },
+            "response_format": "file_changes_v1",
+            "instructions": (
+                "Restituisci esclusivamente modifiche complete di file. "
+                "Ogni elemento deve contenere path, content e reason. "
+                "Non modificare file fuori dagli allowed_paths."
+            ),
         }
 
     def _build_openai_payload(self, context: dict[str, Any]) -> dict[str, Any]:
