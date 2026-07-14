@@ -6,3 +6,6 @@ __pycache__/
 screenshots/*.png
 logs/*.log
 src_backup_pre_cleanup/
+
+*.egg-info/
+workspace/
