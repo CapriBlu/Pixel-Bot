@@ -42,3 +42,24 @@ python -m pixel_bot.developer.cli tasks/PB-006-autonomous-update.json `
   --ai `
   --simulation-changes tasks/example-file-changes.json
 ```
+
+## Sessione continua della task queue (PB-009)
+
+La CLI può eseguire una sessione autonoma limitata con `--run-queue`. Per sicurezza la sessione:
+
+- esegue al massimo `--max-tasks` task (default 5);
+- si arresta al primo errore, salvo `--continue-on-failure`;
+- persiste lo stato di ogni task;
+- crea report individuali in `workspace/task-reports/`;
+- crea un report cumulativo in `workspace/queue-session-report.json`;
+- mantiene push, PR e merge dietro flag espliciti.
+
+```powershell
+python -m pixel_bot.developer.cli `
+  --run-queue `
+  --repo . `
+  --ai `
+  --apply `
+  --commit `
+  --max-tasks 3
+```

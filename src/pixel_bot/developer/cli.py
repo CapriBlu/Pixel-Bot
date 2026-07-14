@@ -12,6 +12,7 @@ from pixel_bot.developer.ai_provider import DeveloperAIProvider
 from pixel_bot.developer.models import FileChange
 from pixel_bot.developer.task_loader import TaskLoader
 from pixel_bot.developer.task_queue import TaskQueue
+from pixel_bot.developer.queue_runner import run_task_queue
 
 
 def _load_changes(path: Path) -> list[FileChange]:
@@ -39,10 +40,33 @@ def _load_changes(path: Path) -> list[FileChange]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Pixel Bot Developer Agent")
     parser.add_argument("task", type=Path, nargs="?", help="Task JSON da eseguire")
-    parser.add_argument(
+    queue_mode = parser.add_mutually_exclusive_group()
+    queue_mode.add_argument(
         "--next-task",
         action="store_true",
         help="Seleziona automaticamente il prossimo task pendente dalla cartella tasks",
+    )
+    queue_mode.add_argument(
+        "--run-queue",
+        action="store_true",
+        help="Esegue più task pendenti in una sessione autonoma limitata",
+    )
+    parser.add_argument(
+        "--max-tasks",
+        type=int,
+        default=5,
+        help="Numero massimo di task eseguiti con --run-queue",
+    )
+    parser.add_argument(
+        "--continue-on-failure",
+        action="store_true",
+        help="Con --run-queue continua dopo un task fallito",
+    )
+    parser.add_argument(
+        "--queue-report",
+        type=Path,
+        default=Path("workspace/queue-session-report.json"),
+        help="Report cumulativo della sessione --run-queue",
     )
     parser.add_argument(
         "--tasks-dir",
@@ -119,8 +143,45 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--commit, --push e --open-pr richiedono --apply.")
 
     repository_root = args.repo.resolve()
-    if args.next_task == (args.task is not None):
-        raise SystemExit("Specificare esattamente un task oppure --next-task.")
+    selected_modes = int(args.task is not None) + int(args.next_task) + int(args.run_queue)
+    if selected_modes != 1:
+        raise SystemExit("Specificare esattamente un task, --next-task oppure --run-queue.")
+
+    if args.run_queue:
+        tasks_dir = args.tasks_dir if args.tasks_dir.is_absolute() else repository_root / args.tasks_dir
+        state_path = args.queue_state if args.queue_state.is_absolute() else repository_root / args.queue_state
+        queue = TaskQueue(tasks_dir, state_path, max_attempts=args.max_attempts)
+        provider = _build_change_provider(args, repository_root)
+        agent = DeveloperAgent(repository_root)
+        reports_dir = repository_root / "workspace" / "task-reports"
+
+        def execute(queued, report_path):
+            return agent.run(
+                queued.task,
+                change_provider=provider,
+                apply_changes=args.apply,
+                report_path=report_path,
+                commit=args.commit or args.push or args.open_pr,
+                push=args.push or args.open_pr,
+                open_pr=args.open_pr,
+                pr_base=args.pr_base,
+            )
+
+        summary = run_task_queue(
+            queue,
+            execute,
+            reports_dir,
+            max_tasks=args.max_tasks,
+            stop_on_failure=not args.continue_on_failure,
+        )
+        queue_report = args.queue_report if args.queue_report.is_absolute() else repository_root / args.queue_report
+        queue_report.parent.mkdir(parents=True, exist_ok=True)
+        queue_report.write_text(
+            json.dumps(summary.to_dict(), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(json.dumps(summary.to_dict(), ensure_ascii=False, indent=2))
+        return 0 if summary.failed == 0 else 1
 
     queue = None
     queued = None
