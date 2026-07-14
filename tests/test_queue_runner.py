@@ -69,3 +69,21 @@ def test_queue_runner_reports_empty_queue(tmp_path: Path) -> None:
 
     assert summary.status == "queue_empty"
     assert summary.processed == 0
+
+
+def test_queue_runner_honors_control_check_before_next_task(tmp_path: Path) -> None:
+    tasks = tmp_path / "tasks"
+    tasks.mkdir()
+    _task(tasks, "one.json", "PB-1", 1)
+    queue = TaskQueue(tasks, tmp_path / "workspace" / "state.json")
+
+    summary = run_task_queue(
+        queue,
+        lambda *_: None,
+        tmp_path / "reports",
+        control_check=lambda: "paused",
+    )
+
+    assert summary.status == "paused"
+    assert summary.processed == 0
+    assert queue.next_task() is not None

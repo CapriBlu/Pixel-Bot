@@ -45,6 +45,7 @@ class QueueRunSummary:
 
 
 TaskExecutor = Callable[[QueuedTask, Path], DeveloperRunResult]
+ControlCheck = Callable[[], str | None]
 
 
 def run_task_queue(
@@ -54,6 +55,7 @@ def run_task_queue(
     *,
     max_tasks: int = 5,
     stop_on_failure: bool = True,
+    control_check: ControlCheck | None = None,
 ) -> QueueRunSummary:
     """Run a bounded autonomous queue session.
 
@@ -71,6 +73,11 @@ def run_task_queue(
     failed = 0
 
     while len(items) < max_tasks:
+        if control_check is not None:
+            control_status = control_check()
+            if control_status is not None:
+                return QueueRunSummary(control_status, len(items), completed, failed, items)
+
         queued = queue.next_task()
         if queued is None:
             status = "queue_empty" if not items else "completed"

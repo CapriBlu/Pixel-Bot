@@ -13,6 +13,8 @@ from pixel_bot.developer.models import FileChange
 from pixel_bot.developer.task_loader import TaskLoader
 from pixel_bot.developer.task_queue import TaskQueue
 from pixel_bot.developer.queue_runner import run_task_queue
+from pixel_bot.developer.git_manager import GitManager
+from pixel_bot.developer.supervisor import SessionSupervisor
 
 
 def _load_changes(path: Path) -> list[FileChange]:
@@ -68,6 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=Path("workspace/queue-session-report.json"),
         help="Report cumulativo della sessione --run-queue",
     )
+    parser.add_argument("--stop-file", type=Path, default=Path("workspace/STOP"), help="File che arresta la sessione prima del task successivo")
+    parser.add_argument("--pause-file", type=Path, default=Path("workspace/PAUSE"), help="File che mette in pausa la sessione prima del task successivo")
+    parser.add_argument("--session-state", type=Path, default=Path("workspace/queue-supervisor-state.json"), help="Stato persistente del supervisore")
+    parser.add_argument("--session-max-requests", type=int, help="Limite totale di richieste AI della sessione")
+    parser.add_argument("--session-max-cost", type=float, help="Budget AI stimato totale della sessione")
+    parser.add_argument("--allow-dirty", action="store_true", help="Consente di avviare un nuovo task con working tree non pulito")
     parser.add_argument(
         "--tasks-dir",
         type=Path,
@@ -116,6 +124,14 @@ def build_parser() -> argparse.ArgumentParser:
 def _build_change_provider(args: argparse.Namespace, repository_root: Path):
     if args.ai:
         config = AIClientConfig.from_environment()
+        if args.session_max_requests is not None:
+            if args.session_max_requests < 1:
+                raise ValueError("--session-max-requests deve essere almeno 1.")
+            config.max_requests_per_task = args.session_max_requests
+        if args.session_max_cost is not None:
+            if args.session_max_cost <= 0:
+                raise ValueError("--session-max-cost deve essere maggiore di zero.")
+            config.max_estimated_cost = args.session_max_cost
         simulated_changes = None
         if args.simulation_changes is not None:
             if not config.dry_run:
@@ -167,13 +183,35 @@ def main(argv: list[str] | None = None) -> int:
                 pr_base=args.pr_base,
             )
 
+        stop_file = args.stop_file if args.stop_file.is_absolute() else repository_root / args.stop_file
+        pause_file = args.pause_file if args.pause_file.is_absolute() else repository_root / args.pause_file
+        session_state = args.session_state if args.session_state.is_absolute() else repository_root / args.session_state
+        git_manager = GitManager(repository_root)
+
+        def repository_check():
+            if args.allow_dirty:
+                return True, None
+            try:
+                return (True, None) if git_manager.is_clean() else (False, "Working tree non pulito.")
+            except RuntimeError as error:
+                return False, str(error)
+
+        supervisor = SessionSupervisor(
+            stop_file=stop_file,
+            pause_file=pause_file,
+            state_path=session_state,
+            budget=getattr(provider, "budget", None),
+            repository_check=repository_check,
+        )
         summary = run_task_queue(
             queue,
             execute,
             reports_dir,
             max_tasks=args.max_tasks,
             stop_on_failure=not args.continue_on_failure,
+            control_check=supervisor.check,
         )
+        supervisor.finish(summary.status)
         queue_report = args.queue_report if args.queue_report.is_absolute() else repository_root / args.queue_report
         queue_report.parent.mkdir(parents=True, exist_ok=True)
         queue_report.write_text(

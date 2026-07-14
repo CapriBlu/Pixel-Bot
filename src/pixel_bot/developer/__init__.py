@@ -31,3 +31,5 @@ __all__ = [
     "TestResult",
     "TestRunner",
 ]
+
+from pixel_bot.developer.supervisor import SessionSupervisor

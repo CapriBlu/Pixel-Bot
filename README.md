@@ -420,3 +420,27 @@ python -m pixel_bot.developer.cli `
 Tasks are ordered by `metadata.priority` and task id. Failed tasks are retried
 up to `--max-attempts` (default: 3), then quarantined as failed. Network actions
 remain opt-in through `--push` and `--open-pr`.
+
+### Supervisore delle sessioni autonome (PB-010)
+
+La modalità `--run-queue` controlla prima di ogni task:
+
+- `workspace/STOP`: arresta in modo sicuro la sessione;
+- `workspace/PAUSE`: mette in pausa la sessione, che può riprendere rimuovendo il file;
+- budget totale con `--session-max-requests` e `--session-max-cost`;
+- pulizia del working tree Git, disattivabile solo esplicitamente con `--allow-dirty`;
+- stato persistente in `workspace/queue-supervisor-state.json`.
+
+Esempio:
+
+```powershell
+python -m pixel_bot.developer.cli `
+  --run-queue `
+  --repo . `
+  --ai `
+  --apply `
+  --commit `
+  --max-tasks 3 `
+  --session-max-requests 3 `
+  --session-max-cost 0.10
+```
