@@ -12,12 +12,14 @@ from pixel_bot.developer.models import TestResult
 class TestRunner:
     repository_root: Path
     timeout_seconds: float = 180.0
-    allowed_executables: tuple[str, ...] = ("pytest", "python", "py")
+    allowed_executables: tuple[str, ...] = ("pytest", "python", "python3", "py")
 
     def run(self, command: list[str]) -> TestResult:
         if not command:
             raise ValueError("Il comando di test non può essere vuoto.")
         executable = Path(command[0]).name.lower()
+        if executable.endswith(".exe"):
+            executable = executable[:-4]
         if executable not in self.allowed_executables:
             raise ValueError(f"Comando di test non autorizzato: {command[0]}")
         environment = os.environ.copy()
