@@ -103,3 +103,75 @@ def test_developer_agent_rejects_path_outside_allowlist(tmp_path):
 
     assert result.status == "failed"
     assert "non autorizzato" in (result.error or "")
+
+
+def test_developer_ai_provider_parses_remote_changes(tmp_path):
+    import json
+
+    from pixel_bot.agent.ai_client import AIClientConfig
+    from pixel_bot.developer import DeveloperAIProvider
+
+    root = make_repo(tmp_path)
+    task = DevelopmentTask("PB-104", "Change", "Update app", allowed_paths=["src"])
+    agent = DeveloperAgent(root, test_runner=PassingRunner())
+    plan = agent.plan(task)
+    snapshot = agent.analyzer.analyze()
+    captured = {}
+
+    def transport(request, timeout):
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        return {
+            "changes": [
+                {"path": "src/app.py", "content": "VALUE = 3\n", "reason": "upgrade"}
+            ]
+        }
+
+    provider = DeveloperAIProvider(
+        root,
+        AIClientConfig(endpoint="https://example.invalid", max_requests_per_task=2),
+        transport=transport,
+    )
+    changes = provider(task, snapshot, plan)
+
+    assert changes[0].path == "src/app.py"
+    assert captured["payload"]["response_format"] == "file_changes_v1"
+    assert captured["payload"]["repository"]["relevant_file_contents"]
+    assert provider.budget.requests_used == 1
+
+
+def test_developer_ai_provider_dry_run_uses_programmed_changes(tmp_path):
+    from pixel_bot.agent.ai_client import AIClientConfig
+    from pixel_bot.developer import DeveloperAIProvider
+
+    root = make_repo(tmp_path)
+    task = DevelopmentTask("PB-105", "Change", "Update app")
+    agent = DeveloperAgent(root, test_runner=PassingRunner())
+    provider = DeveloperAIProvider(
+        root,
+        AIClientConfig(dry_run=True),
+        simulated_changes=[[FileChange("src/app.py", "VALUE = 4\n", "simulation")]],
+    )
+
+    changes = provider(task, agent.analyzer.analyze(), agent.plan(task))
+
+    assert changes[0].content == "VALUE = 4\n"
+    assert provider.budget.requests_used == 1
+
+
+def test_developer_ai_provider_rejects_invalid_response(tmp_path):
+    import pytest
+
+    from pixel_bot.agent.ai_client import AIClientConfig
+    from pixel_bot.developer import DeveloperAIProvider
+
+    root = make_repo(tmp_path)
+    task = DevelopmentTask("PB-106", "Change", "Update app")
+    agent = DeveloperAgent(root, test_runner=PassingRunner())
+    provider = DeveloperAIProvider(
+        root,
+        AIClientConfig(endpoint="https://example.invalid"),
+        transport=lambda request, timeout: {"changes": "invalid"},
+    )
+
+    with pytest.raises(RuntimeError, match="lista di modifiche"):
+        provider(task, agent.analyzer.analyze(), agent.plan(task))

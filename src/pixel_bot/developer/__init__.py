@@ -1,3 +1,4 @@
+from pixel_bot.developer.ai_provider import DeveloperAIProvider
 from pixel_bot.developer.agent import DeveloperAgent
 from pixel_bot.developer.models import (
     DeveloperRunResult,
@@ -12,6 +13,7 @@ from pixel_bot.developer.task_loader import TaskLoader
 from pixel_bot.developer.testing import TestRunner
 
 __all__ = [
+    "DeveloperAIProvider",
     "DeveloperAgent",
     "DeveloperRunResult",
     "DevelopmentPlan",
