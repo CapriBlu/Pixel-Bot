@@ -38,6 +38,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repo", type=Path, default=Path.cwd(), help="Root repository")
     parser.add_argument("--changes", type=Path, help="File JSON con modifiche proposte")
     parser.add_argument("--apply", action="store_true", help="Applica le modifiche e lancia i test")
+    parser.add_argument("--commit", action="store_true", help="Crea un commit Git dopo test verdi")
+    parser.add_argument("--push", action="store_true", help="Esegue push della branch di task")
+    parser.add_argument("--open-pr", action="store_true", help="Apre una Pull Request draft tramite gh")
+    parser.add_argument("--pr-base", default="main", help="Branch base della Pull Request")
     parser.add_argument(
         "--report",
         type=Path,
@@ -60,9 +64,13 @@ def main(argv: list[str] | None = None) -> int:
         report_path=(repository_root / args.report).resolve()
         if not args.report.is_absolute()
         else args.report,
+        commit=args.commit or args.push or args.open_pr,
+        push=args.push or args.open_pr,
+        open_pr=args.open_pr,
+        pr_base=args.pr_base,
     )
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
-    return 0 if result.status in {"ready_for_review", "changes_proposed"} else 1
+    return 0 if result.status in {"ready_for_review", "changes_proposed", "committed", "pull_request_opened"} else 1
 
 
 if __name__ == "__main__":

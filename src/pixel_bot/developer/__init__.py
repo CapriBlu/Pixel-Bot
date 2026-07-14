@@ -1,3 +1,4 @@
+from pixel_bot.developer.git_manager import GitManager, GitPublishResult
 from pixel_bot.developer.ai_provider import DeveloperAIProvider
 from pixel_bot.developer.agent import DeveloperAgent
 from pixel_bot.developer.models import (
@@ -19,6 +20,8 @@ __all__ = [
     "DevelopmentPlan",
     "DevelopmentTask",
     "FileChange",
+    "GitManager",
+    "GitPublishResult",
     "RepositoryAnalyzer",
     "RepositorySnapshot",
     "TaskLoader",

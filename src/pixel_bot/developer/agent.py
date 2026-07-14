@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
+from pixel_bot.developer.git_manager import GitManager
 from pixel_bot.developer.models import (
     DeveloperRunResult,
     DevelopmentPlan,
@@ -24,11 +25,13 @@ class DeveloperAgent:
     repository_root: Path
     analyzer: RepositoryAnalyzer | None = None
     test_runner: TestRunner | None = None
+    git_manager: GitManager | None = None
 
     def __post_init__(self) -> None:
         self.repository_root = self.repository_root.resolve()
         self.analyzer = self.analyzer or RepositoryAnalyzer(self.repository_root)
         self.test_runner = self.test_runner or TestRunner(self.repository_root)
+        self.git_manager = self.git_manager or GitManager(self.repository_root)
 
     def plan(self, task: DevelopmentTask) -> DevelopmentPlan:
         snapshot = self.analyzer.analyze()
@@ -56,6 +59,10 @@ class DeveloperAgent:
         change_provider: ChangeProvider | None = None,
         apply_changes: bool = False,
         report_path: Path | None = None,
+        commit: bool = False,
+        push: bool = False,
+        open_pr: bool = False,
+        pr_base: str = "main",
     ) -> DeveloperRunResult:
         plan = self.plan(task)
         snapshot = self.analyzer.analyze()
@@ -88,6 +95,23 @@ class DeveloperAgent:
                 changed_files=changed_files,
                 test_result=test_result,
             )
+            if test_result.passed and commit and changed_files:
+                publication = self.git_manager.publish(
+                    changed_files=changed_files,
+                    task_id=task.task_id,
+                    task_title=task.title,
+                    push=push,
+                    open_pr=open_pr,
+                    base=pr_base,
+                    pr_body=self._pull_request_body(task, plan, test_result),
+                )
+                result.git = {
+                    "branch": publication.branch,
+                    "commit_sha": publication.commit_sha,
+                    "pushed": publication.pushed,
+                    "pull_request_url": publication.pull_request_url,
+                }
+                result.status = "pull_request_opened" if publication.pull_request_url else "committed"
             if not test_result.passed and backups:
                 self._restore(backups)
                 result.changed_files = []
@@ -106,6 +130,18 @@ class DeveloperAgent:
             )
             self._write_report(result, report_path)
             return result
+
+    @staticmethod
+    def _pull_request_body(task: DevelopmentTask, plan: DevelopmentPlan, test_result) -> str:
+        criteria = "\n".join(f"- {item}" for item in task.acceptance_criteria) or "- Non specificati"
+        files = "\n".join(f"- `{item.path}`: {item.reason}" for item in plan.proposed_changes) or "- Nessuno"
+        return (
+            f"## Obiettivo\n{task.objective}\n\n"
+            f"## Criteri di accettazione\n{criteria}\n\n"
+            f"## File modificati\n{files}\n\n"
+            f"## Test\n`{' '.join(test_result.command)}`: {'PASS' if test_result.passed else 'FAIL'}\n"
+            "\nCreato da Pixel Bot Developer Agent. Merge subordinato a revisione umana."
+        )
 
     def _validated_target(self, relative_path: str, allowed_paths: list[str]) -> Path:
         if not relative_path or Path(relative_path).is_absolute():

@@ -82,6 +82,7 @@ class DeveloperRunResult:
     changed_files: list[str] = field(default_factory=list)
     test_result: TestResult | None = None
     error: str | None = None
+    git: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -99,4 +100,5 @@ class DeveloperRunResult:
                 "stderr": self.test_result.stderr,
             },
             "error": self.error,
+            "git": self.git,
         }

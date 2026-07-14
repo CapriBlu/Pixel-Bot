@@ -175,3 +175,70 @@ def test_developer_ai_provider_rejects_invalid_response(tmp_path):
 
     with pytest.raises(RuntimeError, match="lista di modifiche"):
         provider(task, agent.analyzer.analyze(), agent.plan(task))
+
+
+def init_git_repo(root: Path) -> None:
+    import subprocess
+
+    subprocess.run(["git", "init", "-b", "main"], cwd=root, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "pixelbot@example.invalid"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "Pixel Bot Tests"], cwd=root, check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-m", "initial"], cwd=root, check=True, capture_output=True)
+
+
+def test_git_manager_creates_task_branch_and_commit(tmp_path):
+    import subprocess
+
+    from pixel_bot.developer import GitManager
+
+    root = make_repo(tmp_path)
+    init_git_repo(root)
+    (root / "src" / "app.py").write_text("VALUE = 5\n", encoding="utf-8")
+
+    manager = GitManager(root)
+    result = manager.publish(
+        changed_files=["src/app.py"],
+        task_id="PB-200",
+        task_title="Update value",
+    )
+
+    assert result.branch == "pixelbot/pb-200-update-value"
+    assert result.commit_sha
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"], cwd=root, text=True, capture_output=True, check=True
+    ).stdout.strip()
+    assert branch == result.branch
+
+
+def test_git_manager_rejects_unexpected_path(tmp_path):
+    import pytest
+
+    from pixel_bot.developer import GitManager
+
+    root = make_repo(tmp_path)
+    init_git_repo(root)
+    manager = GitManager(root)
+
+    with pytest.raises(ValueError, match="esce dal repository"):
+        manager.commit_files(["../secret.txt"], "bad")
+
+
+def test_developer_agent_can_commit_green_change(tmp_path):
+    root = make_repo(tmp_path)
+    init_git_repo(root)
+    task = DevelopmentTask("PB-201", "Commit change", "Update app", allowed_paths=["src"])
+    agent = DeveloperAgent(root, test_runner=PassingRunner())
+
+    result = agent.run(
+        task,
+        change_provider=lambda task, snapshot, plan: [
+            FileChange("src/app.py", "VALUE = 6\n", "upgrade")
+        ],
+        apply_changes=True,
+        commit=True,
+    )
+
+    assert result.status == "committed"
+    assert result.git and result.git["commit_sha"]
+    assert result.git["branch"] == "pixelbot/pb-201-commit-change"

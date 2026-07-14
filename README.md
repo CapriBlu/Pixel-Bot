@@ -370,3 +370,30 @@ python -m pixel_bot.developer.cli tasks/PB-003-developer-agent.json `
 
 Il file delle modifiche è una lista JSON di oggetti con `path`, `content` e `reason`.
 Il Developer Agent accetta soltanto percorsi autorizzati dal task, crea backup, esegue i test e ripristina automaticamente i file quando i test falliscono. Il merge su `main` richiede sempre revisione umana.
+
+## Git Manager controllato (PB-005)
+
+Il Developer Agent può ora chiudere il ciclo di aggiornamento con operazioni Git sicure:
+
+- crea automaticamente una branch `pixelbot/<task-id>-<titolo>` quando parte da `main` o da un'altra branch protetta;
+- aggiunge al commit esclusivamente i file modificati dal task;
+- crea il commit solo dopo test verdi;
+- esegue `push` soltanto con l'opzione esplicita `--push`;
+- apre una Pull Request **draft** tramite GitHub CLI soltanto con `--open-pr`;
+- mantiene il merge su `main` subordinato alla revisione umana.
+
+Esempio locale:
+
+```powershell
+python -m pixel_bot.developer.cli tasks/PB-005-git-manager.json `
+  --changes workspace/file-changes.json `
+  --apply --commit
+```
+
+Per pubblicare e aprire una PR draft, dopo aver configurato `gh auth login`:
+
+```powershell
+python -m pixel_bot.developer.cli tasks/PB-005-git-manager.json `
+  --changes workspace/file-changes.json `
+  --apply --open-pr
+```
