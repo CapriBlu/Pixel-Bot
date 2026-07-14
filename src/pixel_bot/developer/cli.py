@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pixel_bot.agent.ai_client import AIClientConfig
+from pixel_bot.agent.workspace import Workspace
 from pixel_bot.developer.agent import DeveloperAgent
+from pixel_bot.developer.ai_provider import DeveloperAIProvider
 from pixel_bot.developer.models import FileChange
 from pixel_bot.developer.task_loader import TaskLoader
 
@@ -36,7 +39,18 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Pixel Bot Developer Agent")
     parser.add_argument("task", type=Path, help="Task JSON da eseguire")
     parser.add_argument("--repo", type=Path, default=Path.cwd(), help="Root repository")
-    parser.add_argument("--changes", type=Path, help="File JSON con modifiche proposte")
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--changes", type=Path, help="File JSON con modifiche proposte")
+    source.add_argument(
+        "--ai",
+        action="store_true",
+        help="Genera le modifiche tramite il backend AI configurato nell'ambiente",
+    )
+    parser.add_argument(
+        "--simulation-changes",
+        type=Path,
+        help="Modifiche programmate da usare con --ai e PIXEL_BOT_DRY_RUN=1",
+    )
     parser.add_argument("--apply", action="store_true", help="Applica le modifiche e lancia i test")
     parser.add_argument("--commit", action="store_true", help="Crea un commit Git dopo test verdi")
     parser.add_argument("--push", action="store_true", help="Esegue push della branch di task")
@@ -51,15 +65,42 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _build_change_provider(args: argparse.Namespace, repository_root: Path):
+    if args.ai:
+        config = AIClientConfig.from_environment()
+        simulated_changes = None
+        if args.simulation_changes is not None:
+            if not config.dry_run:
+                raise ValueError("--simulation-changes richiede PIXEL_BOT_DRY_RUN=1.")
+            simulated_changes = [[*_load_changes(args.simulation_changes)]]
+        workspace = Workspace(repository_root / "workspace")
+        workspace.initialize()
+        return DeveloperAIProvider(
+            repository_root=repository_root,
+            config=config,
+            workspace=workspace,
+            simulated_changes=simulated_changes,
+        )
+
+    if args.simulation_changes is not None:
+        raise ValueError("--simulation-changes può essere usato solo insieme a --ai.")
+
+    changes = _load_changes(args.changes) if args.changes else []
+    return lambda task, snapshot, plan: changes
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if (args.commit or args.push or args.open_pr) and not args.apply:
+        raise SystemExit("--commit, --push e --open-pr richiedono --apply.")
+
     repository_root = args.repo.resolve()
     task = TaskLoader(args.task.parent).load(args.task)
-    changes = _load_changes(args.changes) if args.changes else []
+    provider = _build_change_provider(args, repository_root)
     agent = DeveloperAgent(repository_root)
     result = agent.run(
         task,
-        change_provider=(lambda task, snapshot, plan: changes),
+        change_provider=provider,
         apply_changes=args.apply,
         report_path=(repository_root / args.report).resolve()
         if not args.report.is_absolute()
@@ -70,7 +111,12 @@ def main(argv: list[str] | None = None) -> int:
         pr_base=args.pr_base,
     )
     print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
-    return 0 if result.status in {"ready_for_review", "changes_proposed", "committed", "pull_request_opened"} else 1
+    return 0 if result.status in {
+        "ready_for_review",
+        "changes_proposed",
+        "committed",
+        "pull_request_opened",
+    } else 1
 
 
 if __name__ == "__main__":

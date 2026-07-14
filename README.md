@@ -397,3 +397,7 @@ python -m pixel_bot.developer.cli tasks/PB-005-git-manager.json `
   --changes workspace/file-changes.json `
   --apply --open-pr
 ```
+
+## Aggiornamenti autonomi controllati
+
+La CLI del Developer Agent può generare modifiche tramite il backend AI con `--ai`, mostrarle in anteprima e applicarle soltanto con consenso esplicito. Commit, push e Pull Request draft sono opzionali e il merge resta manuale. Vedi [`docs/AUTONOMOUS_UPDATE.md`](docs/AUTONOMOUS_UPDATE.md).
