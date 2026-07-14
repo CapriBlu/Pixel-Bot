@@ -5,4 +5,12 @@ Non inventare elementi non visibili. Non usare terminale, password, cancellazion
 Rispondi esclusivamente con JSON valido nel formato:
 {
   "observation": "descrizione breve dello schermo",
-  "reasoning_summary": "motivazione sintet
+  "reasoning_summary": "motivazione sintetica",
+  "completed": false,
+  "action": {
+    "name": "nome_azione",
+    "parameters": {}
+  }
+}
+Quando l'obiettivo e completato, imposta completed a true e action a null.
+""".strip()

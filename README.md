@@ -343,3 +343,30 @@ L'obiettivo finale è realizzare un agente desktop capace di:
 - mantenere sempre sicurezza, controllo umano e tracciabilità.
 
 Pixel Bot vuole diventare non soltanto un bot che usa il computer, ma una piattaforma per costruire un **assistente operativo e developer AI intelligente, verificabile e progressivamente autonomo**.
+
+## Developer Agent v0.1
+
+La branch di sviluppo include il primo ciclo controllato di auto-sviluppo:
+
+```text
+Task JSON -> analisi repository -> piano -> modifiche strutturate -> test -> report
+```
+
+Esempio in sola pianificazione:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m pixel_bot.developer.cli tasks/PB-003-developer-agent.json
+```
+
+Esempio con modifiche già generate dal backend AI:
+
+```powershell
+$env:PYTHONPATH = "src"
+python -m pixel_bot.developer.cli tasks/PB-003-developer-agent.json `
+  --changes workspace/proposed-changes.json `
+  --apply
+```
+
+Il file delle modifiche è una lista JSON di oggetti con `path`, `content` e `reason`.
+Il Developer Agent accetta soltanto percorsi autorizzati dal task, crea backup, esegue i test e ripristina automaticamente i file quando i test falliscono. Il merge su `main` richiede sempre revisione umana.

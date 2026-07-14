@@ -1,0 +1,19 @@
+{
+  "task_id": "PB-003",
+  "title": "Developer Agent v0.1",
+  "objective": "Consolidare il primo ciclo controllato di auto-sviluppo di Pixel Bot",
+  "acceptance_criteria": [
+    "Il task viene letto da JSON",
+    "Il repository viene analizzato senza includere directory temporanee",
+    "Le modifiche sono limitate ai percorsi autorizzati",
+    "I test vengono eseguiti dopo le modifiche",
+    "Le modifiche vengono annullate automaticamente se i test falliscono",
+    "Viene prodotto un report JSON pronto per revisione"
+  ],
+  "allowed_paths": ["src", "tests", "docs", "tasks"],
+  "test_command": ["pytest", "-q"],
+  "metadata": {
+    "milestone": "0.7",
+    "human_review_required": true
+  }
+}

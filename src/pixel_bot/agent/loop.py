@@ -11,7 +11,6 @@ from pixel_bot.agent.models import AgentDecision
 from pixel_bot.agent.workspace import Workspace
 from pixel_bot.core.executor import execute_action
 from pixel_bot.core.safety import Action, validate_action
-from pixel_bot.vision.screen_capture import capture_screen
 
 
 class DecisionProvider(Protocol):
@@ -28,6 +27,12 @@ ConfirmationCallback = Callable[[Action, AgentDecision], bool]
 EventCallback = Callable[[str, dict[str, Any]], None]
 ScreenshotProvider = Callable[[], Path]
 ActionExecutor = Callable[[Action], Any]
+
+
+def _default_screenshot_provider() -> Path:
+    from pixel_bot.vision.screen_capture import capture_screen
+
+    return capture_screen()
 
 
 @dataclass(slots=True)
@@ -58,7 +63,7 @@ class AgentLoop:
         event_callback: EventCallback | None = None,
         workspace: Workspace | None = None,
         memory: AgentMemory | None = None,
-        screenshot_provider: ScreenshotProvider = capture_screen,
+        screenshot_provider: ScreenshotProvider = _default_screenshot_provider,
         action_executor: ActionExecutor = execute_action,
     ) -> None:
         if max_steps <= 0:

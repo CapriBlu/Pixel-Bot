@@ -26,11 +26,19 @@ class RepositorySnapshot:
 
 
 @dataclass(slots=True)
+class FileChange:
+    path: str
+    content: str
+    reason: str = ""
+
+
+@dataclass(slots=True)
 class DevelopmentPlan:
     task: DevelopmentTask
     relevant_files: list[str]
     steps: list[str]
     risks: list[str] = field(default_factory=list)
+    proposed_changes: list[FileChange] = field(default_factory=list)
     status: str = "planned"
 
     def to_dict(self) -> dict[str, Any]:
@@ -47,6 +55,9 @@ class DevelopmentPlan:
             "relevant_files": self.relevant_files,
             "steps": self.steps,
             "risks": self.risks,
+            "proposed_changes": [
+                {"path": item.path, "reason": item.reason} for item in self.proposed_changes
+            ],
             "status": self.status,
         }
 
@@ -61,3 +72,31 @@ class TestResult:
     @property
     def passed(self) -> bool:
         return self.return_code == 0
+
+
+@dataclass(slots=True)
+class DeveloperRunResult:
+    task_id: str
+    status: str
+    plan: DevelopmentPlan
+    changed_files: list[str] = field(default_factory=list)
+    test_result: TestResult | None = None
+    error: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "status": self.status,
+            "plan": self.plan.to_dict(),
+            "changed_files": self.changed_files,
+            "test_result": None
+            if self.test_result is None
+            else {
+                "command": self.test_result.command,
+                "return_code": self.test_result.return_code,
+                "passed": self.test_result.passed,
+                "stdout": self.test_result.stdout,
+                "stderr": self.test_result.stderr,
+            },
+            "error": self.error,
+        }
