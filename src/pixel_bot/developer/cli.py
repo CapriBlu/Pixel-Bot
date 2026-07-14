@@ -11,6 +11,7 @@ from pixel_bot.developer.agent import DeveloperAgent
 from pixel_bot.developer.ai_provider import DeveloperAIProvider
 from pixel_bot.developer.models import FileChange
 from pixel_bot.developer.task_loader import TaskLoader
+from pixel_bot.developer.task_queue import TaskQueue
 
 
 def _load_changes(path: Path) -> list[FileChange]:
@@ -37,7 +38,30 @@ def _load_changes(path: Path) -> list[FileChange]:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Pixel Bot Developer Agent")
-    parser.add_argument("task", type=Path, help="Task JSON da eseguire")
+    parser.add_argument("task", type=Path, nargs="?", help="Task JSON da eseguire")
+    parser.add_argument(
+        "--next-task",
+        action="store_true",
+        help="Seleziona automaticamente il prossimo task pendente dalla cartella tasks",
+    )
+    parser.add_argument(
+        "--tasks-dir",
+        type=Path,
+        default=Path("tasks"),
+        help="Cartella della task queue, relativa al repository",
+    )
+    parser.add_argument(
+        "--queue-state",
+        type=Path,
+        default=Path("workspace/developer-task-state.json"),
+        help="File persistente con stato e tentativi della task queue",
+    )
+    parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=3,
+        help="Numero massimo di tentativi per task nella coda",
+    )
     parser.add_argument("--repo", type=Path, default=Path.cwd(), help="Root repository")
     source = parser.add_mutually_exclusive_group()
     source.add_argument("--changes", type=Path, help="File JSON con modifiche proposte")
@@ -95,7 +119,25 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--commit, --push e --open-pr richiedono --apply.")
 
     repository_root = args.repo.resolve()
-    task = TaskLoader(args.task.parent).load(args.task)
+    if args.next_task == (args.task is not None):
+        raise SystemExit("Specificare esattamente un task oppure --next-task.")
+
+    queue = None
+    queued = None
+    if args.next_task:
+        tasks_dir = args.tasks_dir if args.tasks_dir.is_absolute() else repository_root / args.tasks_dir
+        state_path = args.queue_state if args.queue_state.is_absolute() else repository_root / args.queue_state
+        queue = TaskQueue(tasks_dir, state_path, max_attempts=args.max_attempts)
+        queued = queue.next_task()
+        if queued is None:
+            print(json.dumps({"status": "queue_empty"}, ensure_ascii=False, indent=2))
+            return 0
+        queue.mark_started(queued)
+        task = queued.task
+    else:
+        assert args.task is not None
+        task = TaskLoader(args.task.parent).load(args.task)
+
     provider = _build_change_provider(args, repository_root)
     agent = DeveloperAgent(repository_root)
     result = agent.run(
@@ -110,13 +152,19 @@ def main(argv: list[str] | None = None) -> int:
         open_pr=args.open_pr,
         pr_base=args.pr_base,
     )
-    print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
-    return 0 if result.status in {
+    successful = result.status in {
         "ready_for_review",
         "changes_proposed",
         "committed",
         "pull_request_opened",
-    } else 1
+    }
+    if queue is not None and queued is not None:
+        if successful:
+            queue.mark_completed(queued, args.report)
+        else:
+            queue.mark_failed(queued, result.error or result.status)
+    print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+    return 0 if successful else 1
 
 
 if __name__ == "__main__":

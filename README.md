@@ -401,3 +401,22 @@ python -m pixel_bot.developer.cli tasks/PB-005-git-manager.json `
 ## Aggiornamenti autonomi controllati
 
 La CLI del Developer Agent può generare modifiche tramite il backend AI con `--ai`, mostrarle in anteprima e applicarle soltanto con consenso esplicito. Commit, push e Pull Request draft sono opzionali e il merge resta manuale. Vedi [`docs/AUTONOMOUS_UPDATE.md`](docs/AUTONOMOUS_UPDATE.md).
+
+## Autonomous task queue (PB-008)
+
+The Developer Agent can select the next pending JSON task automatically while
+persisting attempts and completion state in `workspace/developer-task-state.json`.
+
+```powershell
+python -m pixel_bot.developer.cli `
+  --next-task `
+  --repo . `
+  --ai `
+  --apply `
+  --commit `
+  --report workspace/next-task-report.json
+```
+
+Tasks are ordered by `metadata.priority` and task id. Failed tasks are retried
+up to `--max-attempts` (default: 3), then quarantined as failed. Network actions
+remain opt-in through `--push` and `--open-pr`.

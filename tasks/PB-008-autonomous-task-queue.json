@@ -1,0 +1,18 @@
+{
+  "task_id": "PB-008",
+  "title": "Autonomous task queue",
+  "objective": "Allow the Developer Agent to select and process the next pending development task with persistent state and bounded retries.",
+  "acceptance_criteria": [
+    "Tasks are selected deterministically by priority and task id.",
+    "Completed tasks are not selected again.",
+    "Failed tasks stop after the configured attempt limit.",
+    "Queue state is persisted atomically in the workspace.",
+    "The CLI supports --next-task without breaking explicit task execution."
+  ],
+  "allowed_paths": ["src", "tests", "docs", "tasks"],
+  "test_command": ["python", "-m", "pytest", "-q"],
+  "metadata": {
+    "priority": 8,
+    "status": "implemented"
+  }
+}

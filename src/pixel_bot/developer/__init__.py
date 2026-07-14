@@ -11,6 +11,7 @@ from pixel_bot.developer.models import (
 )
 from pixel_bot.developer.repository import RepositoryAnalyzer
 from pixel_bot.developer.task_loader import TaskLoader
+from pixel_bot.developer.task_queue import QueuedTask, TaskQueue
 from pixel_bot.developer.testing import TestRunner
 
 __all__ = [
@@ -25,6 +26,8 @@ __all__ = [
     "RepositoryAnalyzer",
     "RepositorySnapshot",
     "TaskLoader",
+    "QueuedTask",
+    "TaskQueue",
     "TestResult",
     "TestRunner",
 ]
