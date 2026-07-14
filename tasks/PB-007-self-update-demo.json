@@ -1,0 +1,24 @@
+{
+  "task_id": "PB-007",
+  "title": "Primo aggiornamento autonomo controllato",
+  "objective": "Creare una prova documentale che confermi il completamento del ciclo Developer Agent end-to-end.",
+  "acceptance_criteria": [
+    "La modifica interessa esclusivamente docs/SELF_UPDATE_DEMO.md.",
+    "La suite automatica passa prima del commit.",
+    "Il Developer Agent crea una branch pixelbot dedicata e un commit tracciabile.",
+    "Push e Pull Request restano azioni esplicite e opzionali."
+  ],
+  "allowed_paths": [
+    "docs"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "simulation",
+    "milestone": "first-controlled-self-update"
+  }
+}
