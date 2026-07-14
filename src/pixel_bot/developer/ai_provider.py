@@ -15,6 +15,27 @@ from pixel_bot.developer.models import DevelopmentPlan, DevelopmentTask, FileCha
 
 Transport = Callable[[Request, float], dict[str, Any]]
 
+_FILE_CHANGES_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "changes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                "required": ["path", "content", "reason"],
+                "additionalProperties": False,
+            },
+        }
+    },
+    "required": ["changes"],
+    "additionalProperties": False,
+}
+
 
 @dataclass(slots=True)
 class DeveloperAIProvider:
@@ -54,7 +75,36 @@ class DeveloperAIProvider:
         if not self.config.endpoint:
             raise RuntimeError("Endpoint AI non configurato.")
 
-        payload = {
+        context = self._build_context(task, snapshot, plan)
+        if self.config.provider == "openai":
+            payload = self._build_openai_payload(context)
+        else:
+            payload = context
+
+        request = Request(
+            self.config.endpoint,
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers=self._headers(),
+            method="POST",
+        )
+        response = self._send(request)
+        raw_changes = (
+            self._extract_openai_changes(response)
+            if self.config.provider == "openai"
+            else response.get("changes", response.get("file_changes"))
+        )
+        changes = self._parse_changes(raw_changes)
+        self.budget.record_request()
+        self._record_usage(self.config.provider, len(changes))
+        return changes
+
+    def _build_context(
+        self,
+        task: DevelopmentTask,
+        snapshot: RepositorySnapshot,
+        plan: DevelopmentPlan,
+    ) -> dict[str, Any]:
+        return {
             "task": {
                 "task_id": task.task_id,
                 "title": task.title,
@@ -68,25 +118,59 @@ class DeveloperAIProvider:
                 "files": snapshot.files,
                 "relevant_file_contents": self._read_relevant_files(plan.relevant_files),
             },
-            "response_format": "file_changes_v1",
-            "instructions": (
-                "Restituisci esclusivamente modifiche complete di file. "
-                "Ogni elemento deve contenere path, content e reason. "
-                "Non modificare file fuori dagli allowed_paths."
-            ),
         }
-        request = Request(
-            self.config.endpoint,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=self._headers(),
-            method="POST",
+
+    def _build_openai_payload(self, context: dict[str, Any]) -> dict[str, Any]:
+        instructions = (
+            "Sei il Developer Agent di Pixel Bot. Proponi esclusivamente modifiche complete "
+            "di file necessarie per completare il task. Non modificare percorsi fuori da "
+            "task.allowed_paths. Ogni file deve avere path, content completo e reason."
         )
-        response = self._send(request)
-        raw_changes = response.get("changes", response.get("file_changes"))
-        changes = self._parse_changes(raw_changes)
-        self.budget.record_request()
-        self._record_usage("remote", len(changes))
-        return changes
+        return {
+            "model": self.config.model,
+            "instructions": instructions,
+            "input": json.dumps(context, ensure_ascii=False),
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": "file_changes_v1",
+                    "strict": True,
+                    "schema": _FILE_CHANGES_SCHEMA,
+                }
+            },
+        }
+
+    @staticmethod
+    def _extract_openai_changes(response: dict[str, Any]) -> Any:
+        direct_text = response.get("output_text")
+        if isinstance(direct_text, str):
+            return DeveloperAIProvider._decode_openai_json(direct_text).get("changes")
+
+        output = response.get("output")
+        if isinstance(output, list):
+            for item in output:
+                if not isinstance(item, dict) or item.get("type") != "message":
+                    continue
+                content = item.get("content")
+                if not isinstance(content, list):
+                    continue
+                for part in content:
+                    if not isinstance(part, dict) or part.get("type") != "output_text":
+                        continue
+                    text = part.get("text")
+                    if isinstance(text, str):
+                        return DeveloperAIProvider._decode_openai_json(text).get("changes")
+        raise RuntimeError("La Responses API non contiene output JSON strutturato.")
+
+    @staticmethod
+    def _decode_openai_json(text: str) -> dict[str, Any]:
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError as error:
+            raise RuntimeError("La Responses API ha restituito output_text non JSON.") from error
+        if not isinstance(payload, dict):
+            raise RuntimeError("La Responses API deve restituire un oggetto JSON.")
+        return payload
 
     def _read_relevant_files(self, paths: list[str]) -> list[dict[str, str]]:
         items: list[dict[str, str]] = []
@@ -150,7 +234,9 @@ class DeveloperAIProvider:
                 raise RuntimeError("Una modifica AI contiene un path non valido.")
             if not isinstance(content, str):
                 raise RuntimeError("Una modifica AI contiene content non valido.")
-            changes.append(FileChange(path=path, content=content, reason=str(item.get("reason", ""))))
+            changes.append(
+                FileChange(path=path, content=content, reason=str(item.get("reason", "")))
+            )
         return changes
 
     def _next_simulated_changes(self) -> list[FileChange]:

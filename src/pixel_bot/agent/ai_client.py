@@ -21,6 +21,8 @@ Transport = Callable[[Request, float], dict[str, Any]]
 class AIClientConfig:
     endpoint: str = ""
     token: str | None = None
+    model: str = "gpt-5-mini"
+    provider: str = "custom"
     timeout_seconds: float = 45.0
     max_history_items: int = 12
     max_requests_per_task: int = 10
@@ -31,12 +33,30 @@ class AIClientConfig:
     @classmethod
     def from_environment(cls) -> "AIClientConfig":
         dry_run = os.getenv("PIXEL_BOT_DRY_RUN", "0") == "1"
+        openai_key = (os.getenv("OPENAI_API_KEY") or "").strip()
         endpoint = os.getenv("PIXEL_BOT_AI_ENDPOINT", "").strip()
+        provider = (os.getenv("PIXEL_BOT_AI_PROVIDER") or "").strip().lower()
+
+        if not endpoint and openai_key:
+            endpoint = "https://api.openai.com/v1/responses"
+            provider = "openai"
+        elif endpoint and "api.openai.com/v1/responses" in endpoint:
+            provider = "openai"
+        elif not provider:
+            provider = "custom"
+
         if not endpoint and not dry_run:
-            raise RuntimeError("PIXEL_BOT_AI_ENDPOINT non configurato.")
+            raise RuntimeError("Configurare OPENAI_API_KEY oppure PIXEL_BOT_AI_ENDPOINT.")
+
+        token = os.getenv("PIXEL_BOT_AI_TOKEN") or openai_key or None
+        if provider == "openai" and not token and not dry_run:
+            raise RuntimeError("OPENAI_API_KEY non configurata.")
+
         return cls(
             endpoint=endpoint,
-            token=os.getenv("PIXEL_BOT_AI_TOKEN") or None,
+            token=token,
+            model=(os.getenv("OPENAI_MODEL") or "gpt-5-mini").strip(),
+            provider=provider,
             timeout_seconds=float(os.getenv("PIXEL_BOT_AI_TIMEOUT", "45")),
             max_history_items=int(os.getenv("PIXEL_BOT_MAX_HISTORY", "12")),
             max_requests_per_task=int(os.getenv("PIXEL_BOT_MAX_REQUESTS", "10")),
@@ -46,6 +66,7 @@ class AIClientConfig:
             max_estimated_cost=float(os.getenv("PIXEL_BOT_MAX_ESTIMATED_COST", "0.10")),
             dry_run=dry_run,
         )
+
 
 
 @dataclass(slots=True)
