@@ -1,0 +1,33 @@
+{
+  "task_id": "PB-016",
+  "title": "Diagnosi e correzione UTF-8 end-to-end",
+  "objective": "Analizzare la gestione UTF-8 del progetto e stabilire se i caratteri alterati derivano dai file salvati o soltanto dalla visualizzazione in Windows PowerShell 5.1. Implementare la correzione minima, sicura e verificabile, evitando conversioni distruttive dei file esistenti.",
+  "acceptance_criteria": [
+    "La causa del mojibake viene identificata e documentata.",
+    "I file UTF-8 esistenti non vengono corrotti o convertiti inutilmente.",
+    "La lettura e scrittura di report JSON e documenti Markdown usa UTF-8 in modo coerente.",
+    "Vengono aggiunti test automatici per la regressione individuata.",
+    "L'intera suite pytest passa.",
+    "La modifica resta limitata ai percorsi autorizzati."
+  ],
+  "allowed_paths": [
+    "src",
+    "tests",
+    "docs",
+    ".gitattributes",
+    ".editorconfig",
+    "pyproject.toml"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "remote-ai",
+    "priority": 1,
+    "milestone": "first-autonomous-code-maintenance",
+    "max_files": 6
+  }
+}
