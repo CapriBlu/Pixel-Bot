@@ -156,12 +156,13 @@ def _build_change_provider(args: argparse.Namespace, repository_root: Path):
 
 
 def main(argv: list[str] | None = None) -> int:
-    load_dotenv(Path.cwd() / ".env")
     args = build_parser().parse_args(argv)
+    repository_root = args.repo.resolve()
+    load_dotenv(repository_root / ".env", override=True)
+
     if (args.commit or args.push or args.open_pr) and not args.apply:
         raise SystemExit("--commit, --push e --open-pr richiedono --apply.")
 
-    repository_root = args.repo.resolve()
     selected_modes = int(args.task is not None) + int(args.next_task) + int(args.run_queue)
     if selected_modes != 1:
         raise SystemExit("Specificare esattamente un task, --next-task oppure --run-queue.")
