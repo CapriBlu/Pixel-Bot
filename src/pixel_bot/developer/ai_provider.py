@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -46,6 +47,7 @@ class DeveloperAIProvider:
     simulated_changes: Iterable[list[FileChange]] | None = None
     max_file_chars: int = 20_000
     max_total_chars: int = 80_000
+    sleeper: Callable[[float], None] = time.sleep
     budget: BudgetState = field(init=False)
     _simulation_iterator: Any = field(init=False, default=None)
 
@@ -65,8 +67,8 @@ class DeveloperAIProvider:
         snapshot: RepositorySnapshot,
         plan: DevelopmentPlan,
     ) -> list[FileChange]:
-        self.budget.ensure_available()
         if self.config.dry_run:
+            self.budget.ensure_available()
             changes = self._next_simulated_changes()
             self.budget.record_request()
             self._record_usage("simulation", len(changes))
@@ -87,14 +89,13 @@ class DeveloperAIProvider:
             headers=self._headers(),
             method="POST",
         )
-        response = self._send(request)
+        response = self._send_with_retries(request)
         raw_changes = (
             self._extract_openai_changes(response)
             if self.config.provider == "openai"
             else response.get("changes", response.get("file_changes"))
         )
         changes = self._parse_changes(raw_changes)
-        self.budget.record_request()
         self._record_usage(self.config.provider, len(changes))
         return changes
 
@@ -208,18 +209,36 @@ class DeveloperAIProvider:
             headers["Authorization"] = f"Bearer {self.config.token}"
         return headers
 
-    def _send(self, request: Request) -> dict[str, Any]:
+    def _send_with_retries(self, request: Request) -> dict[str, Any]:
+        attempts = max(1, self.config.max_retry_attempts)
+        last_error: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            self.budget.ensure_available()
+            self.budget.record_request()
+            try:
+                return self._send_once(request)
+            except (TimeoutError, URLError) as error:
+                last_error = error
+            except HTTPError as error:
+                if error.code not in {408, 429} and error.code < 500:
+                    detail = error.read().decode("utf-8", errors="replace")
+                    raise RuntimeError(f"Backend AI HTTP {error.code}: {detail}") from error
+                last_error = error
+            if attempt < attempts:
+                delay = self.config.retry_backoff_seconds * attempt
+                if delay > 0:
+                    self.sleeper(delay)
+        raise RuntimeError(
+            f"Backend AI non disponibile dopo {attempts} tentativi: {last_error}"
+        ) from last_error
+
+    def _send_once(self, request: Request) -> dict[str, Any]:
         if self.transport is not None:
             payload = self.transport(request, self.config.timeout_seconds)
         else:
             try:
                 with urlopen(request, timeout=self.config.timeout_seconds) as response:
                     payload = json.loads(response.read().decode("utf-8"))
-            except HTTPError as error:
-                detail = error.read().decode("utf-8", errors="replace")
-                raise RuntimeError(f"Backend AI HTTP {error.code}: {detail}") from error
-            except URLError as error:
-                raise RuntimeError(f"Backend AI non raggiungibile: {error.reason}") from error
             except json.JSONDecodeError as error:
                 raise RuntimeError("Il backend AI ha restituito JSON non valido.") from error
         if not isinstance(payload, dict):

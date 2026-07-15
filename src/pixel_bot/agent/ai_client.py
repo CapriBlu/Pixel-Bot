@@ -28,6 +28,8 @@ class AIClientConfig:
     max_requests_per_task: int = 10
     estimated_cost_per_request: float = 0.01
     max_estimated_cost: float = 0.10
+    max_retry_attempts: int = 3
+    retry_backoff_seconds: float = 1.0
     dry_run: bool = False
 
     @classmethod
@@ -64,6 +66,8 @@ class AIClientConfig:
                 os.getenv("PIXEL_BOT_ESTIMATED_COST_PER_REQUEST", "0.01")
             ),
             max_estimated_cost=float(os.getenv("PIXEL_BOT_MAX_ESTIMATED_COST", "0.10")),
+            max_retry_attempts=max(1, int(os.getenv("PIXEL_BOT_AI_MAX_RETRIES", "3"))),
+            retry_backoff_seconds=max(0.0, float(os.getenv("PIXEL_BOT_AI_RETRY_BACKOFF", "1.0"))),
             dry_run=dry_run,
         )
 

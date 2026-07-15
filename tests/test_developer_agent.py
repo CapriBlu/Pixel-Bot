@@ -242,3 +242,90 @@ def test_developer_agent_can_commit_green_change(tmp_path):
     assert result.status == "committed"
     assert result.git and result.git["commit_sha"]
     assert result.git["branch"] == "pixelbot/pb-201-commit-change"
+
+
+def test_task_loader_accepts_utf8_bom(tmp_path):
+    root = make_repo(tmp_path)
+    task_file = root / "tasks" / "PB-BOM.json"
+    task_file.write_text(
+        '{"task_id":"PB-BOM","title":"BOM","objective":"Read task"}',
+        encoding="utf-8-sig",
+    )
+
+    task = TaskLoader(root / "tasks").load(task_file)
+
+    assert task.task_id == "PB-BOM"
+
+
+def test_developer_ai_provider_retries_timeout_then_succeeds(tmp_path):
+    import json
+
+    from pixel_bot.agent.ai_client import AIClientConfig
+    from pixel_bot.developer import DeveloperAIProvider
+
+    root = make_repo(tmp_path)
+    task = DevelopmentTask("PB-RETRY", "Retry", "Update app", allowed_paths=["src"])
+    agent = DeveloperAgent(root, test_runner=PassingRunner())
+    attempts = []
+    delays = []
+
+    def transport(request, timeout):
+        attempts.append(timeout)
+        if len(attempts) == 1:
+            raise TimeoutError("temporary timeout")
+        return {
+            "changes": [
+                {"path": "src/app.py", "content": "VALUE = 7\n", "reason": "retry"}
+            ]
+        }
+
+    provider = DeveloperAIProvider(
+        root,
+        AIClientConfig(
+            endpoint="https://example.invalid",
+            max_requests_per_task=3,
+            max_estimated_cost=1.0,
+            max_retry_attempts=3,
+            retry_backoff_seconds=0.25,
+        ),
+        transport=transport,
+        sleeper=delays.append,
+    )
+
+    changes = provider(task, agent.analyzer.analyze(), agent.plan(task))
+
+    assert changes[0].content == "VALUE = 7\n"
+    assert provider.budget.requests_used == 2
+    assert delays == [0.25]
+
+
+def test_developer_agent_reports_exhausted_ai_retries(tmp_path):
+    from pixel_bot.agent.ai_client import AIClientConfig
+    from pixel_bot.developer import DeveloperAIProvider
+
+    root = make_repo(tmp_path)
+    task = DevelopmentTask("PB-FAIL", "Fail", "Update app", allowed_paths=["src"])
+    report = root / "workspace" / "failed.json"
+    provider = DeveloperAIProvider(
+        root,
+        AIClientConfig(
+            endpoint="https://example.invalid",
+            max_requests_per_task=2,
+            max_estimated_cost=1.0,
+            max_retry_attempts=2,
+            retry_backoff_seconds=0,
+        ),
+        transport=lambda request, timeout: (_ for _ in ()).throw(TimeoutError("down")),
+        sleeper=lambda delay: None,
+    )
+
+    result = DeveloperAgent(root, test_runner=PassingRunner()).run(
+        task,
+        change_provider=provider,
+        apply_changes=True,
+        report_path=report,
+    )
+
+    assert result.status == "failed"
+    assert "dopo 2 tentativi" in (result.error or "")
+    assert report.exists()

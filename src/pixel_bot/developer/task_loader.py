@@ -20,7 +20,7 @@ class TaskLoader:
         resolved = path.resolve()
         if self.tasks_dir != resolved.parent:
             raise ValueError("Il task deve trovarsi nella directory autorizzata.")
-        payload = json.loads(resolved.read_text(encoding="utf-8"))
+        payload = json.loads(resolved.read_text(encoding="utf-8-sig"))
         if not isinstance(payload, dict):
             raise ValueError("Il task deve contenere un oggetto JSON.")
         return self.from_dict(payload)

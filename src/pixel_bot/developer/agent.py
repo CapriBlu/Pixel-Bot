@@ -66,7 +66,18 @@ class DeveloperAgent:
     ) -> DeveloperRunResult:
         plan = self.plan(task)
         snapshot = self.analyzer.analyze()
-        changes = change_provider(task, snapshot, plan) if change_provider else []
+        try:
+            changes = change_provider(task, snapshot, plan) if change_provider else []
+        except Exception as error:
+            result = DeveloperRunResult(
+                task_id=task.task_id,
+                status="failed",
+                plan=plan,
+                changed_files=[],
+                error=str(error),
+            )
+            self._write_report(result, report_path)
+            return result
         plan.proposed_changes = list(changes)
 
         if changes and not apply_changes:
