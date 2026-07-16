@@ -5,6 +5,12 @@ from pathlib import Path
 
 from pixel_bot.developer.testing import TestRunner
 
+# Pytest can attempt to collect any class in a test module whose name
+# starts with "Test". The TestRunner class is a runtime helper (it has a
+# non-default __init__) and is not a test case; mark it explicitly so
+# pytest won't try to collect it and emit a PytestCollectionWarning.
+TestRunner.__test__ = False
+
 
 def test_test_runner_uses_current_python_interpreter(tmp_path: Path) -> None:
     runner = TestRunner(tmp_path)
