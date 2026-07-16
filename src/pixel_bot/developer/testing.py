@@ -56,3 +56,11 @@ class TestRunner:
             stdout=completed.stdout,
             stderr=completed.stderr,
         )
+
+
+# Some test modules import this helper class. Pytest treats any attribute in a
+# test module whose name starts with "Test" as a potential test class and may
+# attempt to collect it (emitting a PytestCollectionWarning if it looks like a
+# unittest-style class with an __init__). Mark the class explicitly so pytest
+# will never try to collect it, regardless of how it's imported.
+TestRunner.__test__ = False
