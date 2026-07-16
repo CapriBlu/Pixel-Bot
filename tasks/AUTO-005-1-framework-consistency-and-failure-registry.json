@@ -1,0 +1,47 @@
+{
+  "task_id": "AUTO-005.1",
+  "title": "Coerenza del framework e registro dei fallimenti noti",
+  "objective": "Correggere l'incoerenza introdotta durante AUTO-005 tra DeveloperRunResult e la serializzazione del report, quindi aggiungere un registro persistente dei tentativi falliti per evitare di rieseguire automaticamente lo stesso identico tentativo già noto come fallimentare. Il registro deve essere prudente: non deve bloccare task corretti o modifiche differenti.",
+  "acceptance_criteria": [
+    "DeveloperRunResult espone in modo retrocompatibile le informazioni sugli errori di cleanup oppure il report le legge in modo sicuro senza AttributeError.",
+    "Tutti i costruttori, serializer e writer del report restano coerenti quando vengono aggiunti campi opzionali al risultato.",
+    "I test esistenti per commit riuscito, rollback e self-update tornano a passare.",
+    "Viene creato un registro runtime in workspace/test-failure-registry, separato per tentativo e non versionato in Git.",
+    "Ogni fallimento registrato include almeno task_id, commit HEAD, fingerprint della proposta, test falliti, tipo di errore e timestamp.",
+    "Prima di eseguire i test, il Developer Agent controlla il registro e salta soltanto un tentativo identico: stesso task_id, stesso HEAD e stessa fingerprint delle modifiche proposte.",
+    "Un tentativo differente, un nuovo commit HEAD o una proposta modificata non vengono bloccati dal registro.",
+    "Quando un tentativo identico è già noto come fallimentare, il report termina con stato known_failure_skipped e indica il record consultato.",
+    "Il registro non sostituisce pytest e non permette di dichiarare riuscito un task senza test.",
+    "I file .pixelbot.bak creati dal Developer Agent vengono rimossi dopo commit riuscito o rollback completato.",
+    "Sono aggiunti test automatici per coerenza del modello, registrazione del fallimento, skip del tentativo identico e mancato skip di un tentativo diverso.",
+    "Tutta la suite pytest termina con successo e senza warning.",
+    "La modifica coinvolge al massimo sette file ed è contenuta in un solo commit autonomo."
+  ],
+  "allowed_paths": [
+    "src/pixel_bot/developer/models.py",
+    "src/pixel_bot/developer/agent.py",
+    "src/pixel_bot/developer/failure_registry.py",
+    "src/pixel_bot/developer/repository.py",
+    "tests/test_developer_agent.py",
+    "tests/test_failure_registry.py",
+    ".gitignore"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "autonomous-magi-supervised",
+    "priority": 1,
+    "milestone": "self-development-learning-loop",
+    "max_files": 7,
+    "requires_backward_compatibility": true,
+    "requires_rollback": true,
+    "known_failure_skip_requires_exact_fingerprint": true,
+    "failure_registry_path": "workspace/test-failure-registry",
+    "next_proposal_auto_apply": false,
+    "requires_creator_review": false
+  }
+}
