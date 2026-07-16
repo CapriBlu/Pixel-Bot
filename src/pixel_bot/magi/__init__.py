@@ -1,17 +1,15 @@
-"""MAGI deliberative governance for Pixel Bot.
-
-MAGI evaluates development proposals through three independent perspectives:
-Melchior (technical evolution), Balthasar (protection and risk), and Caspar
-(strategic perseverance).
-"""
+"""MAGI deliberative governance for Pixel Bot."""
 
 from .council import MagiCouncil
+from .memory import MagiMemoryEntry, MagiMemoryStore
 from .models import DecisionStatus, MagiDecision, MagiOpinion, MagiProposal, MagiRole
 
 __all__ = [
     "DecisionStatus",
     "MagiCouncil",
     "MagiDecision",
+    "MagiMemoryEntry",
+    "MagiMemoryStore",
     "MagiOpinion",
     "MagiProposal",
     "MagiRole",
