@@ -11,6 +11,8 @@ from pixel_bot.developer.models import TestResult
 
 @dataclass(slots=True)
 class TestRunner:
+    __test__ = False
+
     repository_root: Path
     timeout_seconds: float = 180.0
     allowed_executables: tuple[str, ...] = ("pytest", "python", "python3", "py")
