@@ -9,3 +9,8 @@ src_backup_pre_cleanup/
 
 *.egg-info/
 workspace/
+
+# Local runtime and installer data
+local-updates/
+Pixel-Bot/
+workspace/installer-backups/
