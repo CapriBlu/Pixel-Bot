@@ -1,0 +1,41 @@
+{
+  "task_id": "AUTO-002",
+  "title": "Aggiungere la deliberazione MAGI successiva a ogni modifica",
+  "objective": "Estendere il Developer Agent affinché, dopo una modifica applicata con test superati e commit creato, invii automaticamente ai MAGI un riepilogo dell'esito e richieda una sola ipotesi per il prossimo micro-intervento utile, senza applicarla automaticamente.",
+  "acceptance_criteria": [
+    "La deliberazione post-modifica viene eseguita solo dopo test superati e commit riuscito.",
+    "Il riepilogo include task_id, commit SHA, file modificati, risultato dei test e stato finale.",
+    "Melchior, Balthasar e Caspar ricevono lo stesso riepilogo ma consultano le proprie memorie individuali.",
+    "L'esito reale della modifica viene registrato nelle tre memorie come success, failure o rollback.",
+    "MAGI propone al massimo un prossimo micro-intervento.",
+    "La proposta contiene obiettivo, motivazione, rischio, metrica, test e strategia di rollback.",
+    "La proposta successiva viene salvata in workspace/magi-next-proposal.json.",
+    "La proposta non viene applicata automaticamente.",
+    "In caso di test falliti o rollback, MAGI analizza il fallimento invece di proporre espansioni funzionali.",
+    "Tutti i test esistenti continuano a passare senza warning."
+  ],
+  "allowed_paths": [
+    "src/pixel_bot/developer/cli.py",
+    "src/pixel_bot/developer/runner.py",
+    "src/pixel_bot/magi/memory.py",
+    "src/pixel_bot/magi/reporting.py",
+    "src/pixel_bot/magi/post_change.py",
+    "tests/test_magi_post_change.py",
+    "tests/test_developer_post_change.py"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "autonomous-magi-supervised",
+    "priority": 1,
+    "milestone": "self-development-governance",
+    "max_files": 7,
+    "requires_backward_compatibility": true,
+    "next_proposal_auto_apply": false,
+    "requires_creator_review": false
+  }
+}
