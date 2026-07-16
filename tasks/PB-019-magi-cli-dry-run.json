@@ -1,0 +1,38 @@
+{
+  "task_id": "PB-019",
+  "title": "Implementare MAGI CLI dry-run e report JSON",
+  "objective": "Implementare una prima interfaccia locale di MAGI capace di ricevere un obiettivo, eseguire una deliberazione deterministica senza modificare il repository e salvare una decisione strutturata in formato JSON.",
+  "acceptance_criteria": [
+    "Il comando python -m pixel_bot.magi.cli viene eseguito correttamente.",
+    "La CLI accetta --goal, --context, --dry-run e --report.",
+    "Il sistema produce valutazioni separate per Melchior, Balthasar e Caspar.",
+    "La deliberazione genera una MagiDecision valida.",
+    "Il report JSON contiene proposta, opinioni, sintesi, stato e azione consigliata.",
+    "La modalità dry-run non modifica file del repository oltre al report richiesto.",
+    "Ogni critica include un'alternativa o condizioni concrete.",
+    "Tutti i test esistenti continuano a passare.",
+    "Vengono aggiunti test specifici per CLI e report."
+  ],
+  "allowed_paths": [
+    "src/pixel_bot/magi/cli.py",
+    "src/pixel_bot/magi/reporting.py",
+    "src/pixel_bot/magi/providers.py",
+    "src/pixel_bot/magi/__init__.py",
+    "tests/test_magi_cli.py",
+    "tests/test_magi_reporting.py"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "local-foundation",
+    "priority": 1,
+    "milestone": "magi-v0.1-dry-run",
+    "max_files": 6,
+    "must_not_modify_repository": true,
+    "requires_ai_backend": false
+  }
+}
