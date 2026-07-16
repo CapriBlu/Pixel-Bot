@@ -1,0 +1,30 @@
+{
+  "task_id": "PB-018",
+  "title": "Eliminare il warning pytest di TestRunner",
+  "objective": "Eliminare il PytestCollectionWarning relativo alla classe TestRunner con il cambiamento minimo, sicuro e manutenibile, senza alterare il comportamento pubblico del test runner.",
+  "acceptance_criteria": [
+    "La suite pytest termina senza PytestCollectionWarning relativo a TestRunner.",
+    "Tutti i test esistenti continuano a passare.",
+    "Il comportamento pubblico di TestRunner resta invariato.",
+    "La modifica è piccola, documentabile e reversibile.",
+    "Non vengono modificati file estranei al problema."
+  ],
+  "allowed_paths": [
+    "src/pixel_bot/developer/testing.py",
+    "tests/test_test_runner_runtime.py"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "remote-ai",
+    "priority": 1,
+    "milestone": "autonomous-success-rate-validation",
+    "max_files": 2,
+    "previous_successes": 4,
+    "target_success_rate": "8/10"
+  }
+}
