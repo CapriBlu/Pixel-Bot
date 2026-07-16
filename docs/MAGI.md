@@ -1,11 +1,17 @@
 # MAGI Personality Transplant Operating System
 
-## Scopo
+## Scopo attuale
 
 MAGI e il sistema di governo delle decisioni evolutive di Pixel Bot.
 
-Non decide al posto del creatore e non sostituisce test, roadmap, sicurezza o revisione umana. Il suo compito e permettere al Developer Agent di avere maggiore liberta di autosviluppo senza affidare il progetto a una sola prospettiva.
+Nella fase attuale non deve diventare un framework generico ne aggiungere nuove personalita. Deve consolidare il processo con cui il Developer Agent sceglie modifiche concretamente utili, riduce il rischio di autosviluppi eccessivi e trasforma proposte troppo grandi in interventi piu prudenti, strategici e verificabili.
 
-Ogni proposta significativa viene analizzata da tre componenti indipendenti che rappresentano tre aspetti complementari di Pawel Petruk:
+MAGI non sostituisce il creatore, i test, la roadmap, la sicurezza o la revisione umana. Permette pero al Developer Agent di avere maggiore liberta operativa per analizzare, proporre, implementare e correggere modifiche entro confini chiari.
 
-- **Melchior** — lo scienziato che vuole comprendere ed evolvere
+Il costo aggiuntivo in chiamate AI e token e accettabile quando aumenta in modo misurabile la qualita della decisione e riduce il rischio di modifiche inutili, premature o dannose.
+
+---
+
+## Principio centrale
+
+> Una modifica
