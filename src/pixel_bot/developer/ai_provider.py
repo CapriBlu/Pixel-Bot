@@ -51,6 +51,9 @@ class DeveloperAIProvider:
     budget: BudgetState = field(init=False)
     _simulation_iterator: Any = field(init=False, default=None)
 
+    # Soft cap for backoff between retries to avoid unbounded waits.
+    _max_backoff_seconds: float = 10.0
+
     def __post_init__(self) -> None:
         self.repository_root = self.repository_root.resolve()
         self.budget = BudgetState(
@@ -210,24 +213,44 @@ class DeveloperAIProvider:
         return headers
 
     def _send_with_retries(self, request: Request) -> dict[str, Any]:
+        """Send a request to the AI backend with a bounded retry policy.
+
+        - Retries only a limited number of times (configurable).
+        - Between retries waits an increasing backoff capped by _max_backoff_seconds.
+        - Each attempt consumes one unit from the per-task budget (so the budget
+          remains consistent and bounded even when retries happen).
+        - On definitive failure raises a RuntimeError with a concise message.
+        """
         attempts = max(1, self.config.max_retry_attempts)
         last_error: Exception | None = None
         for attempt in range(1, attempts + 1):
+            # Ensure budget for this attempt before sending.
             self.budget.ensure_available()
             self.budget.record_request()
             try:
                 return self._send_once(request)
-            except (TimeoutError, URLError) as error:
+            except (TimeoutError, URLError, ConnectionResetError, BrokenPipeError) as error:
                 last_error = error
             except HTTPError as error:
+                # HTTP errors in the 4xx range (except 408, 429) are considered
+                # definitive and should not be retried. 5xx are retriable.
                 if error.code not in {408, 429} and error.code < 500:
                     detail = error.read().decode("utf-8", errors="replace")
                     raise RuntimeError(f"Backend AI HTTP {error.code}: {detail}") from error
                 last_error = error
+            # If we'll retry, sleep with an increasing but capped backoff.
             if attempt < attempts:
-                delay = self.config.retry_backoff_seconds * attempt
+                raw_delay = float(self.config.retry_backoff_seconds) * float(attempt)
+                delay = min(raw_delay, float(self._max_backoff_seconds))
                 if delay > 0:
-                    self.sleeper(delay)
+                    try:
+                        self.sleeper(delay)
+                    except Exception:
+                        # Sleeper failure shouldn't break retry logic.
+                        pass
+        # All attempts exhausted: raise a clear RuntimeError without leaking a
+        # raw traceback to the caller. Keep a human friendly Italian message
+        # consistent with the rest of the codebase.
         raise RuntimeError(
             f"Backend AI non disponibile dopo {attempts} tentativi: {last_error}"
         ) from last_error
