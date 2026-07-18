@@ -14,12 +14,7 @@
     "src/pixel_bot/developer/failure_registry.py",
     "tests/test_failure_registry.py"
   ],
-  "test_command": [
-    "python",
-    "-m",
-    "pytest",
-    "-q"
-  ],
+  "test_command": ["python", "-m", "pytest", "-q"],
   "metadata": {
     "mode": "autonomous-magi-supervised",
     "priority": 1,
