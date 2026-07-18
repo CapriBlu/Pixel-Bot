@@ -3,7 +3,7 @@
   "title": "Correggere inizializzazione FailureRegistry",
   "objective": "Correggere esclusivamente l'inizializzazione della classe FailureRegistry quando usa dataclass con slots, assicurando che il percorso del registro sia dichiarato e inizializzato correttamente senza modificare il Developer Agent o altre componenti.",
   "acceptance_criteria": [
-    "FailureRegistry può essere istanziato senza AttributeError.",
+    "FailureRegistry puÃ² essere istanziato senza AttributeError.",
     "Il percorso workspace/test-failure-registry viene calcolato correttamente.",
     "I test specifici del FailureRegistry passano.",
     "Tutta la suite pytest passa senza warning.",
