@@ -2,62 +2,68 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-import json
-from typing import Any
+from typing import Optional
 
 
 @dataclass(slots=True)
 class FailureRegistry:
-    """Registro semplice per i fallimenti di test/usabilità usato dal Developer Agent.
+    """Registry to store failures for developer tasks.
 
-    Problema risolto:
-    - In precedenza la classe usava dataclass(slots=True) ma init/\n    __post_init__ assegnavano attributi non dichiarati, causando
-    AttributeError all'istanziazione. Dichiarando esplicitamente
-    gli attributi (anche quelli inizializzati in __post_init__) la
-    classe è compatibile con slots.
+    The class is a dataclass with slots enabled. To avoid AttributeError when
+    assigning computed attributes (which are not part of the init), we declare
+    the attribute using dataclasses.field(init=False) and set its value in
+    __post_init__.
 
-    L'istanza calcola e crea la directory workspace/test-failure-registry
-    e mantiene un file JSON (failures.json) con le voci registrate.
+    The registry_path is computed relative to the provided repository_root as
+    repository_root / "workspace" / "test-failure-registry".
     """
 
-    workspace: Path
-    name: str = "test-failure-registry"
-    # attributi dichiarati per essere compatibili con dataclass(slots=True)
+    repository_root: Path
     path: Path = field(init=False)
-    index_file: Path = field(init=False)
 
     def __post_init__(self) -> None:
-        # Normalizza workspace a Path e calcola il percorso della registry
-        self.workspace = Path(self.workspace)
-        self.path = (self.workspace / self.name).resolve()
-        # Assicura che la directory esista
+        # Normalize repository_root and compute the registry path explicitly
+        self.repository_root = Path(self.repository_root).resolve()
+        self.path = self.repository_root / "workspace" / "test-failure-registry"
+
+    def ensure_exists(self) -> None:
+        """Create the registry directory if it doesn't exist."""
         self.path.mkdir(parents=True, exist_ok=True)
-        # File JSON che contiene l'elenco dei failure
-        self.index_file = self.path / "failures.json"
-        if not self.index_file.exists():
-            # inizializza con una lista vuota
-            self.index_file.write_text("[]", encoding="utf-8")
-
-    def register(self, item: Any) -> None:
-        """Registra un oggetto (serializzabile JSON) nel file dei failure."""
-        data = self._load()
-        data.append(item)
-        self.index_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    def all(self) -> list[Any]:
-        """Restituisce la lista di tutte le voci registrate."""
-        return self._load()
 
     def clear(self) -> None:
-        """Svuota il registro dei failure."""
-        self.index_file.write_text("[]", encoding="utf-8")
+        """Remove all files in the registry directory (does not remove the dir)."""
+        if not self.path.is_dir():
+            return
+        for child in self.path.iterdir():
+            try:
+                if child.is_file():
+                    child.unlink()
+                elif child.is_dir():
+                    # remove directory contents recursively
+                    for sub in child.rglob("*"):
+                        if sub.is_file():
+                            sub.unlink()
+                    # attempt to remove the directory itself
+                    try:
+                        child.rmdir()
+                    except Exception:
+                        pass
+            except Exception:
+                # Best-effort cleanup; avoid raising to keep registry robust
+                pass
 
-    def _load(self) -> list[Any]:
-        if not self.index_file.exists():
+    def record(self, name: str, content: str) -> Path:
+        """Record a failure payload to a file inside the registry.
+
+        Returns the path to the written file.
+        """
+        self.ensure_exists()
+        target = self.path / name
+        target.write_text(content, encoding="utf-8")
+        return target
+
+    def list_entries(self) -> list[Path]:
+        """Return a sorted list of files directly under the registry directory."""
+        if not self.path.is_dir():
             return []
-        try:
-            return json.loads(self.index_file.read_text(encoding="utf-8"))
-        except Exception:
-            # In caso di file malformato, sovrascrive con lista vuota per coerenza
-            self.index_file.write_text("[]", encoding="utf-8")
-            return []
+        return sorted([p for p in self.path.iterdir() if p.is_file()])
