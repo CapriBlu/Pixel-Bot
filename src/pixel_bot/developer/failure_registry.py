@@ -3,57 +3,53 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Dict, List
 
 
 @dataclass(slots=True)
 class FailureRegistry:
-    """Registry for test failures stored under a workspace directory.
+    """Registry of failures persisted under a workspace directory.
 
-    Notes:
-    - When using dataclass(slots=True) any attribute assigned on the instance
-      must be declared as a field. Previously the runtime attempted to set
-      an attribute (e.g. `path` or `registry_path`) that wasn't declared,
-      causing AttributeError. To avoid that we declare the attribute here
-      with init=False and compute it in __post_init__.
+    This class is a dataclass with slots enabled. To allow assigning the
+    computed registry path in __post_init__ we declare registry_path as a
+    dataclass field with init=False. The registry directory is created on
+    initialization.
     """
 
-    workspace: Path | str
-    # Declare the attribute that will be initialized in __post_init__ so
-    # dataclass with slots=True allows assigning to it later.
-    path: Path = field(init=False)
-    # Keep the constant registry directory name explicit and configurable
-    # (init=False so it is not part of the constructor signature).
-    registry_dir_name: str = field(default="test-failure-registry", init=False)
+    workspace: Path
+    name: str = "test-failure-registry"
+    registry_path: Path = field(init=False)
+    failures: Dict[str, List[str]] = field(init=False, default_factory=dict)
 
     def __post_init__(self) -> None:
-        # Accept either Path or str for workspace for convenience in tests
-        if not isinstance(self.workspace, Path):
-            self.workspace = Path(self.workspace)
-        self.workspace = self.workspace.resolve()
+        # Ensure workspace is a Path and exists
+        self.workspace = Path(self.workspace)
+        self.workspace.mkdir(parents=True, exist_ok=True)
 
-        # Compute and initialize the declared path attribute
-        self.path = self.workspace / self.registry_dir_name
-        self.path.mkdir(parents=True, exist_ok=True)
+        # Compute and expose the registry path as an attribute declared on the dataclass
+        self.registry_path = (self.workspace / self.name).resolve()
+        self.registry_path.mkdir(parents=True, exist_ok=True)
 
-    @property
-    def registry_path(self) -> Path:
-        """Backward-compatible accessor for the registry path."""
-        return self.path
+        # Load existing failures if present
+        self._load()
 
-    def record_failure(self, name: str, payload: Any) -> Path:
-        """Record a failure payload as JSON under the registry directory.
+    def add_failure(self, key: str, message: str) -> None:
+        """Record a failure message under the provided key and persist."""
+        self.failures.setdefault(key, []).append(message)
+        self._persist()
 
-        Returns the path to the written file.
-        """
-        target = self.path / f"{name}.json"
-        # Ensure parent exists (should already exist, but keep defensive)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        return target
+    def _persist(self) -> None:
+        file_path = self.registry_path / "failures.json"
+        file_path.write_text(json.dumps(self.failures, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def list_failures(self) -> list[Path]:
-        """Return a sorted list of failure file paths contained in the registry."""
-        if not self.path.exists():
-            return []
-        return sorted(p for p in self.path.iterdir() if p.is_file())
+    def _load(self) -> None:
+        file_path = self.registry_path / "failures.json"
+        if file_path.is_file():
+            try:
+                self.failures = json.loads(file_path.read_text(encoding="utf-8"))
+            except Exception:
+                # If the file is corrupt or unreadable, start with an empty registry
+                self.failures = {}
+
+    def get_failures(self, key: str) -> List[str]:
+        return list(self.failures.get(key, []))
