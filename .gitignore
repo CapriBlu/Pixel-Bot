@@ -16,3 +16,9 @@ Pixel-Bot/
 workspace/installer-backups/
 
 Aggiornamenti Pixel Bot/
+# PB-032.2 local launcher/build artifacts
+launcher/__pycache__/
+launcher/*.exe
+launcher/*.bak-*
+launcher/**/*.bak-*
+ChatGPT Image *.png
