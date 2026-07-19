@@ -14,4 +14,8 @@ from .state_tools import SafeToolRegistry
 _CHECKLIST_LINE = re.compile(
     r"^\s*(?P<id>\d+)[\)\.\-:]\s+(?P<text>\S.*)$"
 )
-_TERMINAL_STATUSES = {"
+_TERMINAL_STATUSES = {"completed", "unavailable"}
+
+
+def extract_request_checklist(goal: str) -> list[dict[str, Any]]:
+    ""
