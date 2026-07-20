@@ -1,33 +1,21 @@
-from __future__ import annotations
-
 from pathlib import Path
-
-import pytest
 
 from pixel_bot.developer.failure_registry import FailureRegistry
 
 
-def test_failure_registry_instantiation(tmp_path: Path) -> None:
-    # Should not raise AttributeError when creating the registry
-    reg = FailureRegistry(repository_root=tmp_path)
-    assert isinstance(reg, FailureRegistry)
+def test_failure_registry_initialization_and_record(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    # instantiate (should not raise AttributeError)
+    registry = FailureRegistry(workspace)
 
+    expected = workspace / "test-failure-registry"
+    assert registry.registry_path == expected
+    # directory must be created by initialization
+    assert expected.exists() and expected.is_dir()
 
-def test_failure_registry_path_computed_correctly(tmp_path: Path) -> None:
-    reg = FailureRegistry(repository_root=tmp_path)
-    expected = (tmp_path / "workspace" / "test-failure-registry").resolve()
-    assert reg.path == expected
-
-
-def test_record_and_list(tmp_path: Path) -> None:
-    reg = FailureRegistry(repository_root=tmp_path)
-    # record a file and check it appears in the listing
-    written = reg.record("failure1.txt", "payload")
-    assert written.exists()
-    entries = reg.list_entries()
-    assert any(p.name == "failure1.txt" for p in entries)
-
-    # clearing should remove the file
-    reg.clear()
-    entries_after = reg.list_entries()
-    assert all(p.name != "failure1.txt" for p in entries_after)
+    # record a payload and check file existence and content
+    payload = {"error": "simulated", "code": 123}
+    file_path = registry.record("sample_failure", payload)
+    assert file_path.exists() and file_path.is_file()
+    loaded = file_path.read_text(encoding="utf-8")
+    assert "simulated" in loaded
