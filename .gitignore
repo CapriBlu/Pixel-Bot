@@ -22,3 +22,10 @@ launcher/*.exe
 launcher/*.bak-*
 launcher/**/*.bak-*
 ChatGPT Image *.png
+
+# Pixel Bot update installers
+.pixelbot_updates/
+PB*_Checklist_Enforcement/
+*_INSTALLER/
+*_BACKUP/
+RISULTATO_TEST_*.txt
