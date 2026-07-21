@@ -1,0 +1,19 @@
+{
+  "task_id": "PB-055",
+  "title": "Pulsante rosso lampeggiante per auto-evoluzione controllata",
+  "objective": "Esporre nel launcher Windows un comando visibile e sicuro per avviare una sola task autonoma con test, gate, commit locale e nessun push automatico.",
+  "acceptance_criteria": [
+    "Il launcher mostra il pulsante LANCIA AUTO-EVOLUZIONE.",
+    "Il pulsante alterna due tonalita di rosso.",
+    "Prima dell'avvio viene richiesta conferma umana.",
+    "La sessione rifiuta un working tree non pulito.",
+    "La sessione esegue al massimo una task.",
+    "Il push Git resta manuale."
+  ],
+  "allowed_paths": [
+    "launcher/PixelBotApp.cs",
+    "launcher/RUN_AUTO_EVOLUTION.ps1",
+    "docs/PB-055-AUTO-EVOLUTION-BUTTON.md",
+    "tests/test_launcher_auto_evolution.py"
+  ]
+}

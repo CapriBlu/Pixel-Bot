@@ -14,12 +14,15 @@ public class PixelBotForm : Form
     private readonly Button openFolderButton = new Button();
     private readonly Button clearButton = new Button();
     private readonly Button sendButton = new Button();
+    private readonly Button autoEvolutionButton = new Button();
+    private readonly Timer evolutionPulseTimer = new Timer();
     private readonly TextBox commandBox = new TextBox();
     private readonly TextBox logBox = new TextBox();
     private readonly Label statusLabel = new Label();
     private readonly string repo;
     private readonly string launcherDir;
     private readonly string runner;
+    private readonly string autoEvolutionRunner;
     private readonly List<string> history = new List<string>();
     private string lastCommand = "";
     private bool developerMode = false;
@@ -29,9 +32,10 @@ public class PixelBotForm : Form
     {
         repo = FindRepository();
         launcherDir = Path.Combine(repo, "launcher");
-        runner = Path.Combine(launcherDir, "RUN_AUTO_005_2.ps1");
+        runner = Path.Combine(launcherDir, "RUN_PIXEL_BOT.ps1");
+        autoEvolutionRunner = Path.Combine(launcherDir, "RUN_AUTO_EVOLUTION.ps1");
 
-        Text = "Pixel Bot - MAGI Brain v3";
+        Text = "Pixel Bot - MAGI Brain v3 - PB-055.1";
         Width = 860;
         Height = 690;
         StartPosition = FormStartPosition.CenterScreen;
@@ -62,6 +66,26 @@ public class PixelBotForm : Form
         clearButton.Text = "Pulisci log";
         clearButton.SetBounds(454, 100, 120, 48);
         clearButton.Click += delegate { logBox.Clear(); };
+
+        autoEvolutionButton.Text = "⚠  LANCIA AUTO-EVOLUZIONE";
+        autoEvolutionButton.SetBounds(590, 100, 228, 48);
+        autoEvolutionButton.Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold);
+        autoEvolutionButton.BackColor = Color.Red;
+        autoEvolutionButton.ForeColor = Color.White;
+        autoEvolutionButton.FlatStyle = FlatStyle.Flat;
+        autoEvolutionButton.FlatAppearance.BorderColor = Color.FromArgb(255, 140, 140);
+        autoEvolutionButton.FlatAppearance.BorderSize = 2;
+        autoEvolutionButton.UseVisualStyleBackColor = false;
+        autoEvolutionButton.Click += async delegate { await RunAutoEvolutionAsync(); };
+
+        evolutionPulseTimer.Interval = 550;
+        evolutionPulseTimer.Tick += delegate
+        {
+            autoEvolutionButton.BackColor = autoEvolutionButton.BackColor == Color.Red
+                ? Color.FromArgb(125, 0, 0)
+                : Color.Red;
+        };
+        evolutionPulseTimer.Start();
 
         statusLabel.Text = "Pronto | Sicura: ON";
         statusLabel.AutoSize = true;
@@ -101,7 +125,7 @@ public class PixelBotForm : Form
         logBox.SetBounds(26, 270, 792, 365);
         logBox.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
-        Controls.AddRange(new Control[] { title, subtitle, startButton, openFolderButton, clearButton, statusLabel, commandLabel, commandBox, sendButton, logBox });
+        Controls.AddRange(new Control[] { title, subtitle, startButton, openFolderButton, clearButton, autoEvolutionButton, statusLabel, commandLabel, commandBox, sendButton, logBox });
 
         Shown += delegate
         {
@@ -117,8 +141,7 @@ public class PixelBotForm : Form
         string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         string[] candidates = new string[]
         {
-            Path.Combine(home, "OneDrive", "Dokumenty", "GitHub", "Pixel-Bot"),
-            Path.Combine(home, "OneDrive", "Documents", "GitHub", "Pixel-Bot"),
+            @"C:\Dev\Pixel-Bot",
             Path.Combine(home, "Documents", "GitHub", "Pixel-Bot"),
             Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".."))
         };
@@ -498,10 +521,36 @@ public class PixelBotForm : Form
         await RunProcessAsync("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File \"" + runner + "\" -Repo \"" + repo + "\"", repo, "AVVIO PIXEL BOT");
     }
 
+    private async Task RunAutoEvolutionAsync()
+    {
+        if (!File.Exists(autoEvolutionRunner))
+        {
+            AppendLog("Pixel Bot: modulo auto-evoluzione non trovato: " + autoEvolutionRunner);
+            return;
+        }
+
+        string warning = "L'auto-evoluzione può modificare e creare commit nel repository.\n\n" +
+            "Verrà eseguita una sola task, con test e arresto automatico in caso di errore. " +
+            "Il push su GitHub NON verrà eseguito.\n\nContinuare?";
+        if (!Confirm(warning))
+        {
+            AppendLog("Pixel Bot: auto-evoluzione annullata dall'utente.");
+            return;
+        }
+
+        await RunProcessAsync(
+            "powershell.exe",
+            "-NoProfile -ExecutionPolicy Bypass -File \"" + autoEvolutionRunner + "\" -Repo \"" + repo + "\"",
+            repo,
+            "AUTO-EVOLUZIONE CONTROLLATA"
+        );
+    }
+
     private async Task RunProcessAsync(string fileName, string arguments, string workingDirectory, string title)
     {
         startButton.Enabled = false;
         sendButton.Enabled = false;
+        autoEvolutionButton.Enabled = false;
         SetWorking("In esecuzione...");
         AppendLog("=== " + title + " ===");
 
@@ -534,6 +583,7 @@ public class PixelBotForm : Form
 
         startButton.Enabled = true;
         sendButton.Enabled = true;
+        autoEvolutionButton.Enabled = true;
     }
 
     private void SetWorking(string text)
