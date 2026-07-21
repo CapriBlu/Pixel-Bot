@@ -113,3 +113,76 @@ def test_retry_policy_validation():
         RetryPolicy(max_attempts=0)
     with pytest.raises(ValueError):
         RetryPolicy(delay_seconds=-1)
+
+
+def test_executor_error_is_classified(tmp_path):
+    def executor(step):
+        raise RuntimeError("boom")
+
+    report = build_orchestrator(tmp_path, executor, lambda step, output: (True, "ok"), attempts=1).run(
+        "task-1", "goal", Checklist.from_text("1. Esegui")
+    )
+
+    assert report.status == "failed"
+    assert report.steps[0].error_type == "execution_error"
+
+
+def test_verifier_error_is_classified(tmp_path):
+    def verifier(step, output):
+        raise RuntimeError("verifier rotto")
+
+    report = build_orchestrator(tmp_path, lambda step: object(), verifier, attempts=1).run(
+        "task-1", "goal", Checklist.from_text("1. Esegui")
+    )
+
+    assert report.status == "failed"
+    assert report.steps[0].error_type == "verification_error"
+
+
+def test_max_rounds_bounds_execution(tmp_path):
+    orchestrator = AutonomousOrchestrator(
+        planner=AutonomousPlanner(),
+        memory=PersistentTaskMemory(tmp_path / "task.json"),
+        executor=lambda step: None,
+        verifier=lambda step, output: (False, "no"),
+        retry_policy=RetryPolicy(max_attempts=3),
+        max_rounds=1,
+    )
+
+    report = orchestrator.run("task-1", "goal", Checklist.from_text("1. Esegui"))
+
+    assert report.status == "bounded"
+    assert report.rounds == 1
+
+
+def test_resume_continues_retry_counter(tmp_path):
+    memory = PersistentTaskMemory(tmp_path / "task.json")
+    record = TaskRecord(task_id="task-1", goal="goal", status="retrying")
+    record.context["rounds"] = 1
+    record.context["steps"] = [
+        {
+            "id": 1,
+            "objective": "Esegui",
+            "depends_on": [],
+            "status": "retrying",
+            "attempts": 1,
+            "evidence": "",
+            "error": "temporaneo",
+        }
+    ]
+    memory.save(record)
+    calls = []
+    orchestrator = AutonomousOrchestrator(
+        planner=AutonomousPlanner(),
+        memory=memory,
+        executor=lambda step: calls.append(step.id) or "ok",
+        verifier=lambda step, output: (True, "fatto"),
+        retry_policy=RetryPolicy(max_attempts=3),
+    )
+
+    report = orchestrator.run("task-1", "goal", Checklist.from_text("1. Esegui"))
+
+    assert report.status == "completed"
+    assert report.steps[0].attempts == 2
+    assert report.rounds == 2
+    assert calls == [1]
