@@ -29,3 +29,6 @@ PB*_Checklist_Enforcement/
 *_INSTALLER/
 *_BACKUP/
 RISULTATO_TEST_*.txt
+.update_backups/
+.pixelbot_backup/
+struttura-pixel-bot.txt
