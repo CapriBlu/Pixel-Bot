@@ -1,4 +1,4 @@
-param([string]$Repo = "")
+﻿param([string]$Repo = "")
 $ErrorActionPreference = "Stop"
 
 if ([string]::IsNullOrWhiteSpace($Repo)) {
@@ -31,7 +31,7 @@ if ($LASTEXITCODE -ne 0) { throw "Test di base falliti." }
 $audit = Join-Path $Repo "src\pixel_bot\developer\architecture_audit.py"
 if (Test-Path -LiteralPath $audit) {
     Write-Host "`n[2/4] Audit architetturale..." -ForegroundColor Cyan
-    & $python $audit $Repo
+    & $python $audit --repo $Repo
     if ($LASTEXITCODE -ne 0) { throw "Audit architetturale fallito." }
 } else {
     Write-Host "`n[2/4] Audit PB-054 non disponibile: passaggio saltato." -ForegroundColor Yellow
@@ -72,3 +72,4 @@ Write-Host "Report: $report"
 Write-Host "Controlla il commit con: git log -1 --oneline"
 Write-Host "Il push resta manuale: git push"
 exit 0
+
