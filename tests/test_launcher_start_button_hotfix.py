@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -16,5 +16,5 @@ def test_current_runner_has_no_legacy_onedrive_or_auto_task() -> None:
     assert "OneDrive" not in script
     assert "AUTO-005" not in script
     assert "$env:PYTHONPATH" in script
-   assert "from pixel_bot.developer import cli" in script
-   assert "callable(cli.main)" in script
+    assert "from pixel_bot.developer import cli" in script
+    assert "callable(cli.main)" in script
