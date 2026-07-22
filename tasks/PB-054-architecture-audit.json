@@ -1,0 +1,12 @@
+{
+  "id": "PB-054",
+  "title": "Repository architecture audit",
+  "status": "implemented",
+  "scope": [
+    "deterministic repository scan",
+    "JSON architecture report",
+    "largest-module inventory",
+    "tests for ignored folders and report generation"
+  ],
+  "command": ".\\.venv\\Scripts\\python.exe -m pixel_bot.developer.architecture_audit"
+}

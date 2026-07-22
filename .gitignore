@@ -6,3 +6,29 @@ __pycache__/
 screenshots/*.png
 logs/*.log
 src_backup_pre_cleanup/
+
+*.egg-info/
+workspace/
+
+# Local runtime and installer data
+local-updates/
+Pixel-Bot/
+workspace/installer-backups/
+
+Aggiornamenti Pixel Bot/
+# PB-032.2 local launcher/build artifacts
+launcher/__pycache__/
+launcher/*.exe
+launcher/*.bak-*
+launcher/**/*.bak-*
+ChatGPT Image *.png
+
+# Pixel Bot update installers
+.pixelbot_updates/
+PB*_Checklist_Enforcement/
+*_INSTALLER/
+*_BACKUP/
+RISULTATO_TEST_*.txt
+.update_backups/
+.pixelbot_backup/
+struttura-pixel-bot.txt

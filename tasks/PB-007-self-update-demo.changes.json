@@ -1,0 +1,7 @@
+[
+  {
+    "path": "docs/SELF_UPDATE_DEMO.md",
+    "reason": "Registra il primo aggiornamento autonomo controllato eseguito dal Developer Agent.",
+    "content": "# Pixel Bot Self-Update Demo\n\nQuesto file e stato generato dal Developer Agent durante il primo ciclo end-to-end controllato.\n\nIl ciclo verificato comprende:\n\n1. caricamento del task;\n2. analisi del repository;\n3. generazione simulata di modifiche strutturate;\n4. applicazione su percorsi autorizzati;\n5. esecuzione dei test;\n6. creazione di una branch dedicata;\n7. commit automatico;\n8. push e Pull Request solo su richiesta esplicita.\n\nIl merge su `main` resta subordinato alla revisione umana.\n"
+  }
+]

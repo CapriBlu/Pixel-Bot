@@ -1,0 +1,16 @@
+{
+  "task_id": "PB-010",
+  "title": "Supervisore sicuro del loop autonomo",
+  "objective": "Aggiungere pausa, stop, budget di sessione e controllo del repository prima di ogni task della coda.",
+  "acceptance_criteria": [
+    "La presenza del file STOP arresta la sessione prima del task successivo.",
+    "La presenza del file PAUSE mette in pausa la sessione senza modificare lo stato del prossimo task.",
+    "Il budget totale di richieste e costo stimato viene applicato all'intera sessione.",
+    "Il working tree viene controllato prima di ogni task salvo autorizzazione esplicita.",
+    "Lo stato del supervisore viene salvato in JSON.",
+    "Tutti i test passano."
+  ],
+  "allowed_paths": ["src", "tests", "tasks", "README.md"],
+  "test_command": ["python", "-m", "pytest", "-q"],
+  "metadata": {"priority": 10, "milestone": "0.3"}
+}

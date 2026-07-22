@@ -1,0 +1,14 @@
+{
+  "task_id": "PB-006",
+  "title": "Primo aggiornamento autonomo controllato",
+  "objective": "Usare il Developer Agent con il backend AI per generare una modifica, applicarla solo dopo consenso esplicito, eseguire i test e preparare commit e Pull Request draft.",
+  "acceptance_criteria": [
+    "La CLI supporta la generazione delle modifiche tramite --ai.",
+    "La modalità simulazione non effettua chiamate remote.",
+    "Applicazione, commit, push e PR richiedono flag espliciti.",
+    "I test falliti provocano rollback.",
+    "Il merge su main resta manuale."
+  ],
+  "allowed_paths": ["src", "tests", "docs", "tasks", "README.md"],
+  "test_command": ["python", "-m", "pytest", "-q"]
+}

@@ -1,0 +1,44 @@
+{
+  "task_id": "AUTO-004",
+  "title": "Valutazione preventiva del rischio dei task",
+  "objective": "Aggiungere al Developer Agent una valutazione deterministica e preventiva del rischio di ogni task prima che venga richiesta o applicata una modifica AI. Il cambiamento deve essere piccolo, testabile e non deve alterare il comportamento dei task a basso rischio.",
+  "acceptance_criteria": [
+    "Ogni task riceve un punteggio di rischio deterministico compreso tra 0 e 100.",
+    "Il punteggio considera almeno numero massimo di file, percorsi critici, ampiezza degli allowed_paths e presenza di modifiche strutturali dichiarate nei metadata.",
+    "I task con rischio da 0 a 30 possono procedere normalmente.",
+    "I task con rischio da 31 a 60 possono procedere ma il report contiene un avviso.",
+    "I task con rischio superiore a 60 non vengono inviati al provider AI e terminano con stato risk_too_high.",
+    "Il report JSON contiene risk_score, risk_level e risk_reasons.",
+    "Il calcolo non dipende dall'AI e produce sempre lo stesso risultato per lo stesso task.",
+    "Il comportamento esistente dei task a basso rischio resta compatibile.",
+    "Sono aggiunti test per rischio basso, medio e alto.",
+    "Tutta la suite pytest termina con successo e senza warning.",
+    "La modifica coinvolge al massimo sette file ed è contenuta in un solo commit."
+  ],
+  "allowed_paths": [
+    "src/pixel_bot/developer/risk.py",
+    "src/pixel_bot/developer/models.py",
+    "src/pixel_bot/developer/agent.py",
+    "src/pixel_bot/developer/cli.py",
+    "tests/test_developer_risk.py",
+    "tests/test_developer_agent.py",
+    "tests/test_developer_cli_ai.py"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "autonomous-magi-supervised",
+    "priority": 1,
+    "milestone": "self-development-governance",
+    "max_files": 7,
+    "requires_backward_compatibility": true,
+    "requires_rollback": true,
+    "risk_scoring_must_be_deterministic": true,
+    "high_risk_threshold": 60,
+    "requires_creator_review": false
+  }
+}

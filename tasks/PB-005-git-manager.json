@@ -1,0 +1,14 @@
+{
+  "task_id": "PB-005",
+  "title": "Git Manager e Pull Request automatizzata",
+  "objective": "Consentire al Developer Agent di creare una branch isolata, committare esclusivamente i file modificati e, su richiesta esplicita, eseguire push e aprire una Pull Request draft.",
+  "acceptance_criteria": [
+    "Mai committare automaticamente su main o master",
+    "Stage limitato ai soli file modificati dal task",
+    "Push e apertura PR disattivati per impostazione predefinita",
+    "Pull Request sempre draft e con report dei test",
+    "Test offline per branch e commit"
+  ],
+  "allowed_paths": ["src", "tests", "tasks", "docs", "README.md"],
+  "test_command": ["python", "-m", "pytest", "-q"]
+}

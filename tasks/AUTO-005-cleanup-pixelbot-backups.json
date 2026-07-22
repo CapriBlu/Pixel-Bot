@@ -1,0 +1,37 @@
+{
+  "task_id": "AUTO-005",
+  "title": "Pulizia automatica dei backup Pixel Bot",
+  "objective": "Fare in modo che il Developer Agent rimuova automaticamente i file temporanei .pixelbot.bak dopo un commit riuscito o dopo un rollback completato, senza alterare i file originali e senza lasciare residui nel working tree.",
+  "acceptance_criteria": [
+    "Dopo un commit riuscito non restano file .pixelbot.bak nel repository.",
+    "Dopo un rollback completato non restano file .pixelbot.bak nel repository.",
+    "La pulizia riguarda esclusivamente backup creati dal Developer Agent.",
+    "La pulizia non elimina file utente o backup con nomi diversi.",
+    "Gli errori di pulizia vengono riportati nel report senza nascondere l'esito principale del task.",
+    "Sono aggiunti test per commit riuscito, rollback e file non correlati.",
+    "Tutta la suite pytest termina con successo e senza warning.",
+    "La modifica coinvolge al massimo quattro file ed è contenuta in un solo commit."
+  ],
+  "allowed_paths": [
+    "src/pixel_bot/developer/agent.py",
+    "src/pixel_bot/developer/repository.py",
+    "tests/test_developer_agent.py",
+    "tests/test_repository.py"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "autonomous-magi-supervised",
+    "priority": 1,
+    "milestone": "self-development-governance",
+    "max_files": 4,
+    "requires_backward_compatibility": true,
+    "requires_rollback": true,
+    "next_proposal_auto_apply": false,
+    "requires_creator_review": false
+  }
+}

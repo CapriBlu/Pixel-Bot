@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pixel-bot"
+version = "0.3.0"
+description = "Desktop AI Agent e Developer Agent controllato per Windows"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "mss==10.2.0",
+  "pillow==12.3.0",
+  "PyAutoGUI==0.9.54",
+  "PyGetWindow==0.0.9",
+  "pyperclip==1.11.0",
+  "python-dotenv==1.2.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.1.1"]
+
+[project.scripts]
+pixelbot = "pixel_bot.__main__:main"
+pixelbot-developer = "pixel_bot.developer.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["pixel_bot*"]

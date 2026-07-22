@@ -1,0 +1,19 @@
+{
+  "task_id": "CORE-001",
+  "title": "Consolidare settings, logging, error handling e screen capture",
+  "objective": "Creare fondamenta configurabili, osservabili e recuperabili per i futuri moduli OCR e AI Vision, mantenendo compatibile l'API esistente di capture_screen.",
+  "acceptance_criteria": [
+    "Le directory runtime sono configurabili tramite ambiente.",
+    "Il logging supporta rotazione e formato JSON opzionale.",
+    "Gli errori principali sono strutturati e serializzabili.",
+    "Screen capture supporta monitor, regione, percorso e metadati.",
+    "capture_screen continua a restituire un Path.",
+    "Tutti i test esistenti e nuovi passano."
+  ],
+  "test_command": ["python", "-m", "pytest", "-q"],
+  "metadata": {
+    "milestone": "desktop-foundation-stabilization",
+    "requires_ai_backend": false,
+    "no_git_operations": true
+  }
+}

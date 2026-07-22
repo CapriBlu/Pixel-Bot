@@ -1,0 +1,39 @@
+﻿{
+  "task_id": "PB-017",
+  "title": "Resilienza minima per il loop autonomo",
+  "objective": "Rendere il Developer Agent abbastanza resiliente da sostenere un loop autonomo limitato. Implementare retry controllati per errori temporanei della Responses API, gestione dei timeout senza traceback non gestiti e produzione garantita di un report strutturato in caso di errore. La soluzione deve restare semplice, con limiti rigidi e senza introdurre loop infiniti.",
+  "acceptance_criteria": [
+    "Le richieste AI che falliscono per timeout o errori di rete temporanei vengono ritentate per un numero massimo configurabile e limitato.",
+    "Tra i tentativi viene applicata un'attesa breve e crescente, senza superare limiti ragionevoli.",
+    "Gli errori definitivi del provider AI vengono convertiti in un risultato failed con report JSON, senza terminare la CLI con traceback non gestito.",
+    "Il budget e il numero massimo di richieste restano rispettati anche durante i retry.",
+    "Vengono aggiunti test automatici per timeout seguito da successo e per esaurimento dei tentativi.",
+    "La suite completa pytest passa.",
+    "La modifica resta limitata ai percorsi autorizzati."
+  ],
+  "allowed_paths": [
+    "src",
+    "tests",
+    "docs",
+    ".env.example",
+    "pyproject.toml"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "remote-ai",
+    "priority": 1,
+    "milestone": "minimum-autonomous-self-development-loop",
+    "max_files": 8,
+    "safety": {
+      "max_retry_attempts": 3,
+      "no_infinite_loops": true,
+      "no_automatic_push": true,
+      "no_automatic_pull_request": true
+    }
+  }
+}

@@ -8,6 +8,7 @@ from pixel_bot.core.executor import execute_action
 from pixel_bot.core.planner import Plan, Planner
 from pixel_bot.core.safety import Action
 from pixel_bot.vision.screen_capture import capture_screen
+from pixel_bot.update_readiness import format_summary, run_update_readiness_check
 
 
 class ControlCenter(tk.Tk):
@@ -97,7 +98,15 @@ class ControlCenter(tk.Tk):
             text="Screenshot",
             command=self.take_screenshot,
         )
-        self.screenshot_button.pack(side="left")
+        self.screenshot_button.pack(side="left", padx=(0, 8))
+
+        # PB-028 UPDATE READINESS
+        self.readiness_button = ttk.Button(
+            buttons,
+            text="Verifica prontezza aggiornamento",
+            command=self.check_update_readiness,
+        )
+        self.readiness_button.pack(side="left")
 
         plan_frame = ttk.LabelFrame(
             root,
@@ -317,6 +326,24 @@ class ControlCenter(tk.Tk):
                 str(error),
             )
 
+    def check_update_readiness(self) -> None:
+        self.readiness_button.configure(state="disabled")
+        self.status_variable.set("Controlli aggiornamento")
+        self._log("Avvio verifica di prontezza aggiornamento.")
+
+        worker = threading.Thread(
+            target=self._readiness_worker,
+            daemon=True,
+        )
+        worker.start()
+
+    def _readiness_worker(self) -> None:
+        try:
+            report = run_update_readiness_check()
+            self.events.put(("readiness", report))
+        except Exception as error:
+            self.events.put(("readiness_error", str(error)))
+
     def _process_events(self) -> None:
         while True:
             try:
@@ -350,6 +377,31 @@ class ControlCenter(tk.Tk):
                 self._log("Esecuzione interrotta.")
                 self._reset_buttons()
 
+            elif event_name == "readiness":
+                report = payload
+                labels = {
+                    "green": "VERDE - pronto",
+                    "orange": "ARANCIONE - intervento richiesto",
+                    "red": "ROSSO - aggiornamento bloccato",
+                }
+                self.status_variable.set(labels[report.status])
+                self._log(format_summary(report))
+                self.readiness_button.configure(state="normal")
+
+                title = "Prontezza aggiornamento"
+                if report.status == "green":
+                    messagebox.showinfo(title, "Pixel Bot e pronto per il prossimo aggiornamento.\n\n" + format_summary(report))
+                elif report.status == "orange":
+                    messagebox.showwarning(title, "Sono presenti elementi da sistemare o autorizzare.\n\n" + format_summary(report))
+                else:
+                    messagebox.showerror(title, "Aggiornamento bloccato da errori gravi.\n\n" + format_summary(report))
+
+            elif event_name == "readiness_error":
+                self.status_variable.set("Errore verifica")
+                self._log(f"Errore verifica aggiornamento: {payload}")
+                self.readiness_button.configure(state="normal")
+                messagebox.showerror("Prontezza aggiornamento", str(payload))
+
             elif event_name == "error":
                 self.status_variable.set("Errore")
                 self._log(f"Errore durante l'esecuzione: {payload}")
@@ -367,6 +419,7 @@ class ControlCenter(tk.Tk):
         self.execute_button.configure(state="normal")
         self.stop_button.configure(state="disabled")
         self.screenshot_button.configure(state="normal")
+        self.readiness_button.configure(state="normal")
 
     def _log(self, message: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")

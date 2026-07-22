@@ -1,0 +1,34 @@
+{
+  "task_id": "DESK-002A",
+  "title": "Consolidare le operazioni essenziali del mouse",
+  "objective": "Estendere il mouse controller con operazioni sicure, validate e compatibili con l'API esistente, usando il cambiamento minimo necessario.",
+  "acceptance_criteria": [
+    "Le funzioni get_mouse_position, move_mouse e click_mouse continuano a funzionare senza modifiche incompatibili.",
+    "Sono disponibili click destro, doppio click, scroll e drag.",
+    "Coordinate, durata e quantità di scroll vengono validate prima di chiamare PyAutoGUI.",
+    "Input non validi producono errori chiari e prevedibili.",
+    "Le nuove operazioni sono coperte da test che non controllano realmente il mouse.",
+    "Tutta la suite pytest termina con successo e senza warning.",
+    "La modifica coinvolge esclusivamente il controller mouse e i relativi test.",
+    "La modifica resta piccola, reversibile e contenuta in un solo commit."
+  ],
+  "allowed_paths": [
+    "src/pixel_bot/automation/mouse_controller.py",
+    "tests/test_mouse_controller.py"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "autonomous-magi-supervised",
+    "priority": 1,
+    "milestone": "desktop-automation-v0.3",
+    "max_files": 2,
+    "requires_backward_compatibility": true,
+    "requires_rollback": true,
+    "requires_creator_review": false
+  }
+}

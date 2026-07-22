@@ -1,0 +1,26 @@
+{
+  "task_id": "PB-012",
+  "title": "Primo aggiornamento generato dal backend AI reale",
+  "objective": "Aggiornare docs/STATUS.md usando il backend AI reale, descrivendo lo stato attuale del Developer Agent senza modificare codice eseguibile.",
+  "acceptance_criteria": [
+    "La modifica interessa esclusivamente docs/STATUS.md.",
+    "Il contenuto riassume le capacità attuali del Developer Agent e il risultato della suite di test.",
+    "La suite automatica passa prima del commit.",
+    "Il commit viene creato localmente; push e Pull Request restano azioni esplicite e separate."
+  ],
+  "allowed_paths": [
+    "docs/STATUS.md"
+  ],
+  "test_command": [
+    "python",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "metadata": {
+    "mode": "remote-ai",
+    "priority": 1,
+    "milestone": "first-real-ai-generated-update",
+    "max_files": 1
+  }
+}
